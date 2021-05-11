@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string.h>
+#include <sys/socket.h>
+
 #include <iostream>
 
 #include "simple-web-server/client_http.hpp"

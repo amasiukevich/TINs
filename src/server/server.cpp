@@ -1,7 +1,7 @@
 #include "server.h"
 
 Server::Server() {
-    http.config.port = 1337;
+    /*http.config.port = 1337;
 
     http.default_resource["GET"] = [](auto response, auto) {
         *response << "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n";
@@ -29,14 +29,50 @@ Server::Server() {
         }
 
         response->write(stream);
-    };
+    };*/
+
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (sockfd == -1) {
+        std::cerr << "Error socket" << std::endl;
+        return;
+    }
+
+    sockaddr_in server_addr;
+
+    memset(&server_addr, 0, sizeof(server_addr));
+
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_port = htons(1337);
+
+    if (bind(sockfd, (const sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
+        std::cerr << "Error bind" << std::endl;
+        return;
+    }
+
+    char buffer[1024];
+
+    while (true) {
+        memset(buffer, 0, sizeof(buffer));
+
+        ssize_t res = recv(sockfd, buffer, sizeof(buffer), 0);
+
+        if (res == -1) {
+            std::cerr << "Error recv" << std::endl;
+        } else if (res == 0) {
+            std::cout << "Recv EOF" << std::endl;
+        } else {
+            std::cout << "Server got: " << std::string(buffer) << std::endl;
+        }
+    }
 }
 
 Server::~Server() {
 }
 
 void Server::Run() {
-    http_thread = std::thread([&]() {
+    /*http_thread = std::thread([&]() {
         http.start();
     });
 
@@ -50,5 +86,5 @@ void Server::Run() {
     } catch (std::exception &) {
     }
 
-    http_thread.join();
+    http_thread.join();*/
 }
