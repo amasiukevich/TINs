@@ -31,6 +31,13 @@ Server::Server() {
         response->write(stream);
     };*/
 
+    /*auto v = chunk_data("This is a test message.", 3);
+    for (auto a : v) {
+        std::cout << a << std::endl;
+    }
+
+    return;*/
+
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
     if (sockfd == -1) {
@@ -43,8 +50,8 @@ Server::Server() {
     memset(&server_addr, 0, sizeof(server_addr));
 
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(1337);
+    server_addr.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(sockfd, (const sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
         std::cerr << "Error bind" << std::endl;

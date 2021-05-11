@@ -26,6 +26,7 @@ file(GLOB CLIENT_FILES
 )
 
 file(GLOB COMMON_FILES
+    src/utility.cpp
 )
 
 find_package(Boost 1.71.0 COMPONENTS system thread REQUIRED)

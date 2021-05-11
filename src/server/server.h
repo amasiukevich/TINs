@@ -1,5 +1,6 @@
 #pragma once
 
+#include <netinet/ip.h>
 #include <string.h>
 #include <sys/socket.h>
 
@@ -7,6 +8,7 @@
 
 #include "simple-web-server/client_http.hpp"
 #include "simple-web-server/server_http.hpp"
+#include "utility.h"
 
 class Server {
 private:
