@@ -16,10 +16,22 @@ Proxy::Proxy() {
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(1337);
-    server_addr.sin_addr.s_addr = INADDR_ANY;
+    inet_aton("127.0.0.1", (in_addr *)&server_addr.sin_addr.s_addr);
+
+    char buffer[1024];
+    socklen_t addr_len;
 
     for (auto chunk : chunk_data(request, 4)) {
-        ssize_t res = sendto(sockfd, (const char *)chunk.c_str(), chunk.length(), MSG_CONFIRM, (const sockaddr *)&server_addr, sizeof(server_addr));
+        std::cout << "Sending chunk." << std::endl;
+
+        sendto(sockfd, (const char *)chunk.c_str(), chunk.length(), MSG_CONFIRM, (const sockaddr *)&server_addr, sizeof(server_addr));
+        recvfrom(sockfd, buffer, sizeof(buffer), 0, (sockaddr *)&server_addr, &addr_len);
+
+        if (std::string(buffer) == "ACK") {
+            std::cout << "Got ACK." << std::endl;
+        } else {
+            std::cerr << "Error, instead got: " << std::string(buffer) << std::endl;
+        }
     }
 
     /*ssize_t res = sendto(sockfd, (const char *)request.c_str(), request.length(), MSG_CONFIRM, (const sockaddr *)&server_addr, sizeof(server_addr));

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <arpa/inet.h>
 #include <netinet/ip.h>
 #include <string.h>
 #include <sys/socket.h>

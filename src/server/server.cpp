@@ -60,10 +60,15 @@ Server::Server() {
 
     char buffer[1024];
 
+    sockaddr_in src_addr;
+    memset(&src_addr, 0, sizeof(src_addr));
+    socklen_t src_addr_len;
+
     while (true) {
         memset(buffer, 0, sizeof(buffer));
 
-        ssize_t res = recv(sockfd, buffer, sizeof(buffer), 0);
+        //ssize_t res = recv(sockfd, buffer, sizeof(buffer), 0);
+        ssize_t res = recvfrom(sockfd, buffer, sizeof(buffer), 0, (sockaddr *)&src_addr, &src_addr_len);
 
         if (res == -1) {
             std::cerr << "Error recv" << std::endl;
@@ -71,6 +76,7 @@ Server::Server() {
             std::cout << "Recv EOF" << std::endl;
         } else {
             std::cout << "Server got: " << std::string(buffer) << std::endl;
+            sendto(sockfd, "ACK\0", 4, MSG_CONFIRM, (const sockaddr *)&src_addr, src_addr_len);
         }
     }
 }
