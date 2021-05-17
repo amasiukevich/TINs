@@ -1,56 +1,16 @@
 #include "server.h"
 
 Server::Server() {
-    /*http.config.port = 1337;
-
-    http.default_resource["GET"] = [](auto response, auto) {
-        *response << "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n";
-    };
-
-    http.default_resource["POST"] = [](auto response, auto) {
-        *response << "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n";
-    };
-
-    http.resource["^/info$"]["GET"] = [](auto response, auto request) {
-        std::stringstream stream;
-        stream << "<h1>Request from " << request->remote_endpoint_address() << ":" << request->remote_endpoint_port() << "</h1>";
-
-        stream << request->method << " " << request->path << " HTTP/" << request->http_version;
-
-        stream << "<h2>Query Fields</h2>";
-        auto query_fields = request->parse_query_string();
-        for (auto &field : query_fields) {
-            stream << field.first << ": " << field.second << "<br>";
-        }
-
-        stream << "<h2>Header Fields</h2>";
-        for (auto &field : request->header) {
-            stream << field.first << ": " << field.second << "<br>";
-        }
-
-        response->write(stream);
-    };*/
-
-    /*auto v = chunk_data("This is a test message.", 3);
-    for (auto a : v) {
-        std::cout << a << std::endl;
-    }
-
-    return;*/
-
-    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
     if (sockfd == -1) {
         std::cerr << "Error socket" << std::endl;
         return;
     }
 
-    sockaddr_in server_addr;
-
     memset(&server_addr, 0, sizeof(server_addr));
-
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(1337);
+    server_addr.sin_port = htons(1999);
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(sockfd, (const sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
@@ -58,46 +18,54 @@ Server::Server() {
         return;
     }
 
-    char buffer[1024];
-
-    sockaddr_in src_addr;
-    memset(&src_addr, 0, sizeof(src_addr));
-    socklen_t src_addr_len;
-
-    while (true) {
-        memset(buffer, 0, sizeof(buffer));
-
-        //ssize_t res = recv(sockfd, buffer, sizeof(buffer), 0);
-        ssize_t res = recvfrom(sockfd, buffer, sizeof(buffer), 0, (sockaddr *)&src_addr, &src_addr_len);
-
-        if (res == -1) {
-            std::cerr << "Error recv" << std::endl;
-        } else if (res == 0) {
-            std::cout << "Recv EOF" << std::endl;
-        } else {
-            std::cout << "Server got: " << std::string(buffer) << std::endl;
-            sendto(sockfd, "ACK\0", 4, MSG_CONFIRM, (const sockaddr *)&src_addr, src_addr_len);
-        }
-    }
+    memset(&proxy_addr, 0, sizeof(proxy_addr));
+    proxy_addr.sin_family = AF_INET;
+    proxy_addr.sin_port = htons(2000);
+    inet_aton("127.0.0.1", (in_addr *)&proxy_addr.sin_addr.s_addr);
 }
 
 Server::~Server() {
 }
 
 void Server::Run() {
-    /*http_thread = std::thread([&]() {
-        http.start();
-    });
+    while (true) {
+        memset(buffer, 0, sizeof(buffer));
+        bytes_received = recv(sockfd, buffer, sizeof(buffer), 0);
 
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+        if (bytes_received == -1) {
+            std::cerr << "Recv: ERROR" << std::endl;
+        } else if (bytes_received == 0) {
+            std::cout << "Recv: EOF" << std::endl;
+        } else {
+            std::cout << "Recv: DATA, " << bytes_received << " bytes" << std::endl;
+            request.append(buffer, bytes_received);
+            bytes_sent = sendto(sockfd, "ACK\0", 4, 0, (const sockaddr *)&proxy_addr, sizeof(proxy_addr));
+            std::cout << "Send: ACK" << std::endl;
+        }
 
-    SimpleWeb::Client<SimpleWeb::HTTP> client("localhost:1337");
+        if (bytes_received < 8) {
+            TryParseRequest();
+        }
+    }
+}
 
-    try {
-        auto res = client.request("GET", "/info");
-        std::cout << res->content.string() << std::endl;
-    } catch (std::exception &) {
+void Server::TryParseRequest() {
+    std::cout << "Parsing..." << std::endl;
+    std::stringstream ss(request);
+    std::string method;
+    std::string path;
+    std::string query_string;
+    std::string version;
+    SimpleWeb::CaseInsensitiveMultimap header;
+
+    bool res = SimpleWeb::RequestMessage::parse(ss, method, path, query_string, version, header);
+
+    if (!res) {
+        std::cerr << "Parsing error" << std::endl;
     }
 
-    http_thread.join();*/
+    std::cout << method << std::endl;
+    std::cout << path << std::endl;
+    std::cout << query_string << std::endl;
+    std::cout << version << std::endl;
 }

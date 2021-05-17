@@ -10,6 +10,15 @@
 #include "utility.h"
 
 class Proxy {
+private:
+    int sockfd;
+    sockaddr_in proxy_addr;
+    sockaddr_in server_addr;
+
+    char buffer[8];
+    ssize_t bytes_received;
+    ssize_t bytes_sent;
+
 public:
     Proxy();
     ~Proxy();
