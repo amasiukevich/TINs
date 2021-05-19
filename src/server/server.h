@@ -2,30 +2,39 @@
 
 #include <arpa/inet.h>
 #include <netinet/ip.h>
-#include <string.h>
 #include <sys/socket.h>
 
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 
-#include "simple-web-server/utility.hpp"
+#include "aaa.h"
+#include "http.h"
 #include "utility.h"
 
 class Server {
 private:
     int sockfd;
+
     sockaddr_in server_addr;
     sockaddr_in proxy_addr;
 
-    char buffer[8];
-    ssize_t bytes_received;
-    ssize_t bytes_sent;
+    char buffer[AAA_MAX_PACKET_SIZE];
 
-    std::string request;
+    std::string raw_http_request;
+    HTTP::Request http_request;
+
+    std::string raw_http_response;
+    HTTP::Response http_response;
 
 public:
     Server();
     ~Server();
     void Run();
-    void TryParseRequest();
+    ssize_t SendPacket(AAA::PacketType type, char count, std::string data);
+    ssize_t ReceivePacket();
+    bool ParseRequest();
+    bool HandleRequest();
+    void SendData(std::string data);
 };

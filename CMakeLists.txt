@@ -13,6 +13,7 @@ include_directories(
 file(GLOB SERVER_FILES
     src/server/main_server.cpp
     src/server/server.cpp
+    src/server/http.cpp
 )
 
 file(GLOB PROXY_FILES
@@ -27,6 +28,7 @@ file(GLOB CLIENT_FILES
 
 file(GLOB COMMON_FILES
     src/utility.cpp
+    src/aaa.cpp
 )
 
 find_package(Boost 1.71.0 COMPONENTS system thread REQUIRED)
