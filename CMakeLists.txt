@@ -19,6 +19,7 @@ file(GLOB SERVER_FILES
 file(GLOB PROXY_FILES
     src/proxy/main_proxy.cpp
     src/proxy/proxy.cpp
+    src/proxy/client_manager.cpp
 )
 
 file(GLOB CLIENT_FILES
