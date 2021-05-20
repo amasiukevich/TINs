@@ -7,7 +7,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -Wall -Wextra -pedantic")
 include_directories(
     src
     lib
-    ${Boost_INCLUDE_DIR}
+    ${Boost_INCLUDE_DIRS}
 )
 
 file(GLOB SERVER_FILES
