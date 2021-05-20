@@ -13,3 +13,22 @@ make
 ./proxy
 ./client
 ```
+
+## Building and using Wireshark plugin
+(for Ubuntu)
+1. Download Wireshark
+
+```sudo apt-get install wireshark```
+
+2. Move LUA file to directory containing LUA plugins
+
+```
+ sudo cp /path/to/aaa-protocol/src/wireshark/tin-aaa.lua /usr/lib/x86_64-linux-gnu/wireshark/plugins/tin-aaa.lua
+```
+
+3. Start Wireshark 
+```
+sudo wireshark
+```
+
+4. Open Help -> About Wireshark -> Plugins and you should see "tin-aaa.lua" plugin on the list
