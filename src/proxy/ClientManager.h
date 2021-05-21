@@ -2,8 +2,8 @@
 // Created by Joanna Sokołowska on 20.05.2021.
 //
 
-#ifndef AAA_PROTOCOL_CLIENT_MANAGER_H
-#define AAA_PROTOCOL_CLIENT_MANAGER_H
+#ifndef AAA_PROTOCOL_CLIENTMANAGER_H
+#define AAA_PROTOCOL_CLIENTMANAGER_H
 
 #include <semaphore.h>
 
@@ -28,4 +28,4 @@ public:
 
 };
 
-#endif  //AAA_PROTOCOL_CLIENT_MANAGER_H
+#endif  //AAA_PROTOCOL_CLIENTMANAGER_H

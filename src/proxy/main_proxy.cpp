@@ -1,6 +1,7 @@
 #include "proxy.h"
 
 int main() {
-    Proxy().Run();
+    std::shared_ptr<ClientManager> sharedPtr(new ClientManager);
+    Proxy(sharedPtr).Run();
     return 0;
 }

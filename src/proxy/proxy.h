@@ -7,7 +7,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <memory>
 
+#include "ClientManager.h"
 #include "aaa.h"
 #include "utility.h"
 
@@ -22,9 +24,12 @@ private:
     ssize_t bytes_sent;
 
     std::string raw_http_response;
+    std::shared_ptr<ClientManager> clientManager;
+    void httpThread();
+
 
 public:
-    Proxy();
+    Proxy(std::shared_ptr<ClientManager> client);
     ~Proxy();
     void Run();
     void SendData(std::string request);

@@ -2,8 +2,7 @@
 // Created by asia on 20.05.2021.
 //
 
-#include "client_manager.h"
-
+#include "ClientManager.h"
 
 void ClientManager::QueueUpClient(int socket_fd){
     boost::unique_lock<boost::mutex> lock(mutex);

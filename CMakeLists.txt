@@ -19,7 +19,8 @@ file(GLOB SERVER_FILES
 file(GLOB PROXY_FILES
     src/proxy/main_proxy.cpp
     src/proxy/proxy.cpp
-    src/proxy/client_manager.cpp
+        src/proxy/ClientManager.cpp
+    src/proxy/Config.cpp
 )
 
 file(GLOB CLIENT_FILES
@@ -37,5 +38,7 @@ find_package(Boost 1.71.0 COMPONENTS system thread REQUIRED)
 add_executable(server ${SERVER_FILES} ${COMMON_FILES})
 target_link_libraries(server pthread ${Boost_LIBRARIES})
 
-add_executable(proxy ${PROXY_FILES} ${COMMON_FILES})
+add_executable(proxy ${PROXY_FILES} ${COMMON_FILES} src/proxy/HTTPServerThread.cpp src/proxy/HTTPServerThread.h)
+target_link_libraries(proxy pthread ${Boost_LIBRARIES})
+
 add_executable(client ${CLIENT_FILES} ${COMMON_FILES})
