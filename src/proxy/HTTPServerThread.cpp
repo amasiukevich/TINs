@@ -10,11 +10,8 @@ HTTPServerThread::HTTPServerThread(std::shared_ptr<ClientManager> client):client
 }
 
 void HTTPServerThread::run(){
-    int c = 0;
     while(true){
-        std::cout<<"Listening "<< c;
-        clientManager->QueueUpClient(c);
-        c++;
+        std::cout<<"HTTP thread Listening \n";
         sleep(2);
         //listen on socket
         //accept connection int incoming;
