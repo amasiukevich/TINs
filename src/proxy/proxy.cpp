@@ -1,6 +1,8 @@
 #include "proxy.h"
 
-Proxy::Proxy() {
+#include "HTTPServerThread.h"
+
+Proxy::Proxy(std::shared_ptr<ClientManager> client):clientManager(std::move(client)) {
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
     if (sockfd == -1) {
@@ -30,6 +32,9 @@ Proxy::~Proxy() {
 }
 
 void Proxy::Run() {
+    HTTPServerThread HTTPthread(clientManager);
+    auto t = boost::thread( &HTTPServerThread::run, HTTPthread );
+
     while (true) {
         SendData("GET /info?test=1&ok=true HTTP/1.1\r\nHost: 127.0.0.1:1999\r\nUser-Agent: curl/7.68.0\r\nX-Test: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ultricies eleifend est, eget gravida magna ultricies id. Praesent metus felis, tempus nec mollis sed, semper vel justo. Mauris aliquet ipsum ut tincidunt interdum. In vulputate leo id elementum venenatis. Nulla nec massa ipsum. Proin gravida gravida auctor. Fusce vulputate lobortis leo, consectetur pharetra felis cursus a.\r\nAccept: */*\r\n\r\n");
         ReceiveData();
@@ -38,6 +43,7 @@ void Proxy::Run() {
         break;
     }
 }
+
 
 void Proxy::SendData(std::string data) {
     auto data_chunks = chunk_data(data, AAA_MAX_DATA_SIZE);
