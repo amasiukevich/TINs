@@ -20,7 +20,7 @@ file(GLOB PROXY_FILES
     src/proxy/main_proxy.cpp
     src/proxy/proxy.cpp
         src/proxy/ClientManager.cpp
-    src/proxy/Config.cpp
+        src/proxy/ConfigParser.cpp
 )
 
 file(GLOB CLIENT_FILES

@@ -10,6 +10,7 @@
 #include <memory>
 
 #include "ClientManager.h"
+#include "ConfigParser.h"
 #include "aaa.h"
 #include "utility.h"
 
@@ -25,7 +26,7 @@ private:
 
     std::string raw_http_response;
     std::shared_ptr<ClientManager> clientManager;
-    void httpThread();
+    std::map<std::string, configEntry> devices;
 
 
 public:
