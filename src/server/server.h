@@ -37,4 +37,5 @@ public:
     bool ParseRequest();
     bool HandleRequest();
     void SendData(std::string data);
+    void SetRecvTimeout(bool flag);
 };
