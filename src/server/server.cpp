@@ -90,6 +90,8 @@ bool Server::HandleRequest() {
 }
 
 void Server::SendData(std::string data) {
+    SetRecvTimeout(true);
+
     auto data_chunks = chunk_data(data, AAA_MAX_DATA_SIZE);
 
     if (data_chunks.size() > AAA_MAX_COUNT) {
@@ -104,6 +106,18 @@ void Server::SendData(std::string data) {
             char count = AAA::GetCount(buffer[0]);
             std::cout << "Recv: ACK " << (int)count << std::endl;
             ++i;
+        } else {
+            std::cout << "Didn't get ACK. Sending again." << std::endl;
         }
     }
+
+    SetRecvTimeout(false);
+}
+
+void Server::SetRecvTimeout(bool flag) {
+    struct timeval timeout;
+    timeout.tv_sec = flag ? 2 : 0;
+    timeout.tv_usec = 0;
+
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 }
