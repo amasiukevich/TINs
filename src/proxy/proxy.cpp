@@ -65,9 +65,11 @@ void Proxy::Run() {
             char buff[4096];
             memset(buff, 0, sizeof(buff));
             ssize_t bytes_received = recv(connfd, buff, sizeof(buff), 0);
-
+            // TUTAJ
             if (bytes_received > 0) {
                 std::string s = std::string(buff);
+
+                std::string device_id = GetDeviceId(s);
 
                 SendData(s);
                 ReceiveData();
@@ -170,6 +172,18 @@ ssize_t Proxy::SendPacket(AAA::PacketType type, char count, std::string data) {
 ssize_t Proxy::ReceivePacket() {
     memset(buffer, 0, sizeof(buffer));
     return recv(sockfd, buffer, sizeof(buffer), 0);
+}
+
+std::string Proxy::GetDeviceId(std::string raw_packet) {
+
+    std::string device_id = std::string("");
+
+    auto pos1 = raw_packet.find('/');
+    auto remain_packet = raw_packet.substr(pos1 + 1);
+
+    auto pos2 = remain_packet.find('/');
+    device_id = remain_packet.substr(0, pos2);
+    return device_id;
 }
 
 void Proxy::SetRecvTimeout(bool flag) {
