@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 
 project(aaa-protocol)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -Wall -Wextra -pedantic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++2a -Wall -Wextra -pedantic")
 
 include_directories(
     src
@@ -42,3 +42,10 @@ add_executable(proxy ${PROXY_FILES} ${COMMON_FILES} src/proxy/HTTPServerThread.c
 target_link_libraries(proxy pthread ${Boost_LIBRARIES})
 
 add_executable(client ${CLIENT_FILES} ${COMMON_FILES})
+
+
+include(FetchContent)
+FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/archive/609281088cfefc76f9d0ce82e1ff6c30cc3591e5.zip
+)

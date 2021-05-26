@@ -39,5 +39,7 @@ public:
     void ReceiveData();
     ssize_t SendPacket(AAA::PacketType type, char count, std::string data);
     ssize_t ReceivePacket();
+
+    std::string GetDeviceId(std::string rawPacket);
     void SetRecvTimeout(bool flag);
 };
