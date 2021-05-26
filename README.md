@@ -9,7 +9,7 @@ cmake ..
 make
 ```
 ```
-./server
+./device
 ./proxy
 ./client
 ```

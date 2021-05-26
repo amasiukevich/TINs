@@ -1,30 +1,24 @@
-//
-// Created by Joanna Sokołowska on 20.05.2021.
-//
-
-#ifndef AAA_PROTOCOL_CONFIGPARSER_H
-#define AAA_PROTOCOL_CONFIGPARSER_H
+#pragma once
 
 #include <fstream>
+#include <iostream>
 #include <map>
 #include <string>
 
-struct configEntry{
+struct ConfigEntry {
     int max_msg_size;
     int port;
     std::string device_addr;
 };
 
-class ConfigParser{
+class ConfigParser {
 public:
-    std::map <std::string, configEntry> parseConfig(std::string configFile);
-    ConfigParser() =default;
+    std::map<std::string, ConfigEntry> parseConfig(std::string filename);
+    ConfigParser() = default;
+
 private:
     std::ifstream file;
     std::string line;
 
-    void next_line();
+    void nextLine();
 };
-
-
-#endif  //AAA_PROTOCOL_CONFIGPARSER_H
