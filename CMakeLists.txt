@@ -37,6 +37,7 @@ file(GLOB CLIENT_FILES
 
 file(GLOB COMMON_FILES
     src/common/*.cpp
+    src/common/*.h
 )
 
 # Programs

@@ -86,8 +86,23 @@ bool Device::ParseRequest() {
 }
 
 bool Device::HandleRequest() {
-    http_response = HTTP::NOT_IMPLEMENTED;
-    return true;
+    auto path_items = split_string(http_request.path, "/");
+
+    if (path_items.size() >= 2 && path_items[1] != id) {
+        http_response = HTTP::BAD_REQUEST;
+        http_response.body = "Wrong device.";
+        return true;
+    }
+
+    if (path_items.size() >= 3 && path_items[2] == "info") {
+        http_response = HTTP::OK;
+        http_response.header.emplace(std::make_pair("Content-Type", "application/json"));
+        http_response.body = json_to_string(config["devices"][id.c_str()]);
+        return true;
+    }
+
+    http_response = HTTP::BAD_REQUEST;
+    return false;
 }
 
 void Device::SendData(std::string data) {

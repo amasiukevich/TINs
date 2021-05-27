@@ -21,6 +21,10 @@ std::string Response::to_string() {
         s += a.first + ": " + a.second + "\r\n";
     }
 
+    if (body.size() > 0) {
+        s += "Content-Length: " + std::to_string(body.size()) + "\r\n";
+    }
+
     s += "\r\n" + body;
 
     return s;

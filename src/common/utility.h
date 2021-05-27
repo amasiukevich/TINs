@@ -15,6 +15,8 @@ std::vector<std::string> chunk_data(std::string &data, size_t chunk_size);
 
 rapidjson::Document load_config(std::string filepath);
 
+std::vector<std::string> split_string(std::string s, std::string delimiter);
+
 template <typename T>
 std::string json_to_string(T &o) {
     rapidjson::StringBuffer sb;
