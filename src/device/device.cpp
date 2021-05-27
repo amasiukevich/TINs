@@ -1,35 +1,36 @@
-#include "server.h"
+#include "device.h"
 
-Server::Server() {
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+Device::Device(std::string config_path, std::string id)
+    : id(id) {
+    config = load_config(config_path);
 
-    if (sockfd == -1) {
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         std::cerr << "Error socket" << std::endl;
         exit(-1);
     }
 
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(2999);
-    server_addr.sin_addr.s_addr = INADDR_ANY;
+    memset(&device_addr, 0, sizeof(device_addr));
+    device_addr.sin_family = AF_INET;
+    device_addr.sin_port = htons(config["devices"][id.c_str()]["port"].GetInt());
+    device_addr.sin_addr.s_addr = inet_addr(config["devices"][id.c_str()]["ip"].GetString());
 
-    if (bind(sockfd, (const sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
+    if (bind(sockfd, (const sockaddr *)&device_addr, sizeof(device_addr)) == -1) {
         std::cerr << "Error bind" << std::endl;
         exit(-1);
     }
 
     memset(&proxy_addr, 0, sizeof(proxy_addr));
     proxy_addr.sin_family = AF_INET;
-    proxy_addr.sin_port = htons(3000);
-    inet_aton("127.0.0.1", (in_addr *)&proxy_addr.sin_addr.s_addr);
+    proxy_addr.sin_port = htons(config["proxy"]["port_for_devices"].GetInt());
+    proxy_addr.sin_addr.s_addr = inet_addr(config["proxy"]["ip_for_devices"].GetString());
 
     connect(sockfd, (const sockaddr *)&proxy_addr, sizeof(proxy_addr));
 }
 
-Server::~Server() {
+Device::~Device() {
 }
 
-void Server::Run() {
+void Device::Run() {
     while (true) {
         ssize_t bytes_received = ReceivePacket();
 
@@ -58,7 +59,7 @@ void Server::Run() {
     }
 }
 
-ssize_t Server::SendPacket(AAA::PacketType type, char count, std::string data) {
+ssize_t Device::SendPacket(AAA::PacketType type, char count, std::string data) {
     char header = 0;
     AAA::SetType(header, type);
     AAA::SetCount(header, count);
@@ -73,23 +74,23 @@ ssize_t Server::SendPacket(AAA::PacketType type, char count, std::string data) {
     return sendto(sockfd, temp.c_str(), temp.size(), 0, (const sockaddr *)&proxy_addr, sizeof(proxy_addr));
 }
 
-ssize_t Server::ReceivePacket() {
+ssize_t Device::ReceivePacket() {
     memset(buffer, 0, sizeof(buffer));
     return recv(sockfd, buffer, sizeof(buffer), 0);
 }
 
-bool Server::ParseRequest() {
+bool Device::ParseRequest() {
     http_request = {};
     std::stringstream stream(raw_http_request);
     return SimpleWeb::RequestMessage::parse(stream, http_request.method, http_request.path, http_request.query_string, http_request.version, http_request.header);
 }
 
-bool Server::HandleRequest() {
-    http_response = HTTP::BAD_REQUEST;
+bool Device::HandleRequest() {
+    http_response = HTTP::NOT_IMPLEMENTED;
     return true;
 }
 
-void Server::SendData(std::string data) {
+void Device::SendData(std::string data) {
     SetRecvTimeout(true);
 
     auto data_chunks = chunk_data(data, AAA_MAX_DATA_SIZE);
@@ -114,7 +115,7 @@ void Server::SendData(std::string data) {
     SetRecvTimeout(false);
 }
 
-void Server::SetRecvTimeout(bool flag) {
+void Device::SetRecvTimeout(bool flag) {
     struct timeval timeout;
     timeout.tv_sec = flag ? 2 : 0;
     timeout.tv_usec = 0;

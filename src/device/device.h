@@ -9,15 +9,18 @@
 #include <iostream>
 #include <sstream>
 
-#include "aaa.h"
+#include "common/aaa.h"
+#include "common/utility.h"
 #include "http.h"
-#include "utility.h"
 
-class Server {
+class Device {
 private:
+    rapidjson::Document config;
+    std::string id;
+
     int sockfd;
 
-    sockaddr_in server_addr;
+    sockaddr_in device_addr;
     sockaddr_in proxy_addr;
 
     char buffer[AAA_MAX_PACKET_SIZE];
@@ -29,8 +32,8 @@ private:
     HTTP::Response http_response;
 
 public:
-    Server();
-    ~Server();
+    Device(std::string config_path, std::string id);
+    ~Device();
     void Run();
     ssize_t SendPacket(AAA::PacketType type, char count, std::string data);
     ssize_t ReceivePacket();

@@ -1,7 +1,10 @@
 # TINs
 Simple proxy server for the sensor network
 
-## Build & Run
+## Build, Test, Run
+```
+git submodule update --init --recursive
+```
 ```
 mkdir build
 cd build
@@ -9,7 +12,10 @@ cmake ..
 make
 ```
 ```
-./server
+ctest --output-on-failure
+```
+```
+./device
 ./proxy
 ./client
 ```

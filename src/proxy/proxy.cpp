@@ -1,51 +1,46 @@
 #include "proxy.h"
 
-#include "HTTPServerThread.h"
+Proxy::Proxy(std::string config_path) {
+    config = load_config(config_path);
 
-Proxy::Proxy(std::shared_ptr<ClientManager> client)
-    : clientManager(std::move(client)) {
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-
-    if (sockfd == -1) {
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         std::cerr << "Error socket" << std::endl;
         exit(-1);
     }
 
-    memset(&proxy_addr, 0, sizeof(proxy_addr));
-    proxy_addr.sin_family = AF_INET;
-    proxy_addr.sin_port = htons(3000);
-    proxy_addr.sin_addr.s_addr = INADDR_ANY;
+    memset(&proxy_addr_for_devices, 0, sizeof(proxy_addr_for_devices));
+    proxy_addr_for_devices.sin_family = AF_INET;
+    proxy_addr_for_devices.sin_port = htons(config["proxy"]["port_for_devices"].GetInt());
+    proxy_addr_for_devices.sin_addr.s_addr = inet_addr(config["proxy"]["ip_for_devices"].GetString());
 
-    if (bind(sockfd, (const sockaddr *)&proxy_addr, sizeof(proxy_addr)) == -1) {
+    if (bind(sockfd, (const sockaddr *)&proxy_addr_for_devices, sizeof(proxy_addr_for_devices)) == -1) {
         std::cerr << "Error bind" << std::endl;
         exit(-1);
     }
 
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(2999);
-    inet_aton("127.0.0.1", (in_addr *)&server_addr.sin_addr.s_addr);
+    memset(&device_addr, 0, sizeof(device_addr));
+    device_addr.sin_family = AF_INET;
+    device_addr.sin_port = htons(2999);
+    device_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    connect(sockfd, (const sockaddr *)&server_addr, sizeof(server_addr));
+    connect(sockfd, (const sockaddr *)&device_addr, sizeof(device_addr));
 
-    client_sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
-    if (client_sockfd == -1) {
+    if ((client_sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         std::cerr << "Error client socket" << std::endl;
         exit(-1);
     }
 
     memset(&proxy_addr_for_clients, 0, sizeof(proxy_addr_for_clients));
     proxy_addr_for_clients.sin_family = AF_INET;
-    proxy_addr_for_clients.sin_port = htons(4000);
-    proxy_addr_for_clients.sin_addr.s_addr = INADDR_ANY;
+    proxy_addr_for_clients.sin_port = htons(config["proxy"]["port_for_clients"].GetInt());
+    proxy_addr_for_clients.sin_addr.s_addr = inet_addr(config["proxy"]["ip_for_clients"].GetString());
 
     if (bind(client_sockfd, (const sockaddr *)&proxy_addr_for_clients, sizeof(proxy_addr_for_clients)) == -1) {
         std::cerr << "Error bind" << std::endl;
         exit(-1);
     }
 
-    if (listen(client_sockfd, 10) == -1) {
+    if (listen(client_sockfd, config["proxy"]["client_queue_size"].GetInt()) == -1) {
         std::cerr << "Error listen" << std::endl;
         exit(-1);
     }
@@ -55,9 +50,6 @@ Proxy::~Proxy() {
 }
 
 void Proxy::Run() {
-    HTTPServerThread HTTPthread(clientManager);
-    auto t = boost::thread(&HTTPServerThread::run, HTTPthread);
-
     while (true) {
         int connfd = AcceptClient();
 
@@ -65,7 +57,7 @@ void Proxy::Run() {
             char buff[4096];
             memset(buff, 0, sizeof(buff));
             ssize_t bytes_received = recv(connfd, buff, sizeof(buff), 0);
-            // TUTAJ
+
             if (bytes_received > 0) {
                 std::string s = std::string(buff);
 
@@ -81,11 +73,6 @@ void Proxy::Run() {
                 break;
             }
         }
-        //SendData("GET /info?test=1&ok=true HTTP/1.1\r\nHost: 127.0.0.1:1999\r\nUser-Agent: curl/7.68.0\r\nX-Test: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ultricies eleifend est, eget gravida magna ultricies id. Praesent metus felis, tempus nec mollis sed, semper vel justo. Mauris aliquet ipsum ut tincidunt interdum. In vulputate leo id elementum venenatis. Nulla nec massa ipsum. Proin gravida gravida auctor. Fusce vulputate lobortis leo, consectetur pharetra felis cursus a.\r\nAccept: */*\r\n\r\n");
-        //ReceiveData();
-        //SendData("GET /info?test=1&ok=true HTTP/1.1\r\nHost: 127.0.0.1:1999\r\nUser-Agent: curl/7.68.0\r\nAccept: */*\r\n\r\n");
-        //ReceiveData();
-        //break;
     }
 }
 
@@ -140,7 +127,6 @@ void Proxy::ReceiveData() {
             if (type == AAA::PacketType::DATA) {
                 std::cout << "Recv: DATA " << (int)count << std::endl;
                 raw_http_response.append(buffer + 1, bytes_received - 1);
-                //sleep(5);
                 SendPacket(AAA::PacketType::ACK, count, "");
             }
 
@@ -166,7 +152,7 @@ ssize_t Proxy::SendPacket(AAA::PacketType type, char count, std::string data) {
         return -1;
     }
 
-    return sendto(sockfd, temp.c_str(), temp.size(), 0, (const sockaddr *)&server_addr, sizeof(server_addr));
+    return sendto(sockfd, temp.c_str(), temp.size(), 0, (const sockaddr *)&device_addr, sizeof(device_addr));
 }
 
 ssize_t Proxy::ReceivePacket() {
@@ -175,14 +161,14 @@ ssize_t Proxy::ReceivePacket() {
 }
 
 std::string Proxy::GetDeviceId(std::string raw_packet) {
-
-    std::string device_id = std::string("");
+    std::string device_id = "";
 
     auto pos1 = raw_packet.find('/');
     auto remain_packet = raw_packet.substr(pos1 + 1);
 
     auto pos2 = remain_packet.find('/');
     device_id = remain_packet.substr(0, pos2);
+
     return device_id;
 }
 

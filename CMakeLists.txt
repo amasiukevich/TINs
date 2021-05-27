@@ -2,50 +2,58 @@ cmake_minimum_required(VERSION 3.0)
 
 project(aaa-protocol)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++2a -Wall -Wextra -pedantic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -Wall -Wextra -pedantic")
+
+add_custom_target(copy_config ALL COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/config" "${CMAKE_BINARY_DIR}/config")
+
+# Libraries
+
+find_package(Boost 1.71.0 COMPONENTS system thread REQUIRED)
+add_subdirectory(lib/googletest)
+
+# Headers
 
 include_directories(
     src
     lib
     ${Boost_INCLUDE_DIRS}
+    lib/rapidjson/include
+    lib/googletest/googletest/include
 )
 
-file(GLOB SERVER_FILES
-    src/server/main_server.cpp
-    src/server/server.cpp
-    src/server/http.cpp
+# Source files
+
+file(GLOB DEVICE_FILES
+    src/device/*.cpp
 )
 
 file(GLOB PROXY_FILES
-    src/proxy/main_proxy.cpp
-    src/proxy/proxy.cpp
-        src/proxy/ClientManager.cpp
-        src/proxy/ConfigParser.cpp
+    src/proxy/*.cpp
 )
 
 file(GLOB CLIENT_FILES
-    src/client/main_client.cpp
-    src/client/client.cpp
+    src/client/*.cpp
 )
 
 file(GLOB COMMON_FILES
-    src/utility.cpp
-    src/aaa.cpp
+    src/common/*.cpp
 )
 
-find_package(Boost 1.71.0 COMPONENTS system thread REQUIRED)
+# Programs
 
-add_executable(server ${SERVER_FILES} ${COMMON_FILES})
-target_link_libraries(server pthread ${Boost_LIBRARIES})
+add_executable(device ${DEVICE_FILES} ${COMMON_FILES})
+target_link_libraries(device pthread ${Boost_LIBRARIES})
 
-add_executable(proxy ${PROXY_FILES} ${COMMON_FILES} src/proxy/HTTPServerThread.cpp src/proxy/HTTPServerThread.h)
+add_executable(proxy ${PROXY_FILES} ${COMMON_FILES})
 target_link_libraries(proxy pthread ${Boost_LIBRARIES})
 
 add_executable(client ${CLIENT_FILES} ${COMMON_FILES})
+target_link_libraries(client pthread ${Boost_LIBRARIES})
 
+# Tests 
 
-include(FetchContent)
-FetchContent_Declare(
-        googletest
-        URL https://github.com/google/googletest/archive/609281088cfefc76f9d0ce82e1ff6c30cc3591e5.zip
-)
+enable_testing()
+
+add_executable(test1 test/test1.cpp ${COMMON_FILES})
+target_link_libraries(test1 pthread ${Boost_LIBRARIES} gtest)
+add_test(test1 test1)
