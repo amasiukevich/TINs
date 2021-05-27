@@ -86,7 +86,7 @@ bool Device::ParseRequest() {
 }
 
 bool Device::HandleRequest() {
-    http_response = HTTP::BAD_REQUEST;
+    http_response = HTTP::NOT_IMPLEMENTED;
     return true;
 }
 
