@@ -15,8 +15,8 @@ make
 ctest --output-on-failure
 ```
 ```
-./device path/to/config.json deviceID
-./proxy path/to/config.json
+./device config/global.json device0
+./proxy config/global.json
 ```
 ```
 curl -X GET 127.0.0.1:4000/device0/info -H "X-Test: asdf" --verbose
