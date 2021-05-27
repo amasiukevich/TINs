@@ -4,11 +4,22 @@ project(aaa-protocol)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -Wall -Wextra -pedantic")
 
+# Libraries
+
+find_package(Boost 1.71.0 COMPONENTS system thread REQUIRED)
+add_subdirectory(lib/googletest)
+
+# Headers
+
 include_directories(
     src
     lib
     ${Boost_INCLUDE_DIRS}
+    lib/rapidjson/include
+    lib/googletest/googletest/include
 )
+
+# Source files
 
 file(GLOB DEVICE_FILES
     src/device/*.cpp
@@ -26,7 +37,7 @@ file(GLOB COMMON_FILES
     src/common/*.cpp
 )
 
-find_package(Boost 1.71.0 COMPONENTS system thread REQUIRED)
+# Programs
 
 add_executable(device ${DEVICE_FILES} ${COMMON_FILES})
 target_link_libraries(device pthread ${Boost_LIBRARIES})
@@ -37,8 +48,10 @@ target_link_libraries(proxy pthread ${Boost_LIBRARIES})
 add_executable(client ${CLIENT_FILES} ${COMMON_FILES})
 target_link_libraries(client pthread ${Boost_LIBRARIES})
 
-include(FetchContent)
-FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/609281088cfefc76f9d0ce82e1ff6c30cc3591e5.zip
-)
+# Tests 
+
+enable_testing()
+
+add_executable(test1 test/test1.cpp ${COMMON_FILES})
+target_link_libraries(test1 pthread ${Boost_LIBRARIES} gtest)
+add_test(test1 test1)
