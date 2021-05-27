@@ -15,9 +15,8 @@ make
 ctest --output-on-failure
 ```
 ```
-./device
-./proxy
-./client
+./device path/to/config.json deviceID
+./proxy path/to/config.json
 ```
 
 ## Building and using Wireshark plugin
