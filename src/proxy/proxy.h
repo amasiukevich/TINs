@@ -10,12 +10,13 @@
 #include <iostream>
 #include <memory>
 
-#include "ConfigParser.h"
 #include "common/aaa.h"
 #include "common/utility.h"
 
 class Proxy {
 private:
+    rapidjson::Document config;
+
     int sockfd;
     int client_sockfd;
     sockaddr_in proxy_addr_for_devices;
@@ -27,10 +28,9 @@ private:
     ssize_t bytes_sent;
 
     std::string raw_http_response;
-    std::map<std::string, ConfigEntry> devices;
 
 public:
-    Proxy();
+    Proxy(std::string config_path);
     ~Proxy();
     void Run();
     int AcceptClient();
@@ -38,7 +38,6 @@ public:
     void ReceiveData();
     ssize_t SendPacket(AAA::PacketType type, char count, std::string data);
     ssize_t ReceivePacket();
-
     std::string GetDeviceId(std::string rawPacket);
     void SetRecvTimeout(bool flag);
 };

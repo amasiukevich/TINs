@@ -15,6 +15,9 @@
 
 class Device {
 private:
+    rapidjson::Document config;
+    std::string id;
+
     int sockfd;
 
     sockaddr_in device_addr;
@@ -29,7 +32,7 @@ private:
     HTTP::Response http_response;
 
 public:
-    Device();
+    Device(std::string config_path, std::string id);
     ~Device();
     void Run();
     ssize_t SendPacket(AAA::PacketType type, char count, std::string data);

@@ -4,6 +4,8 @@ project(aaa-protocol)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -Wall -Wextra -pedantic")
 
+add_custom_target(copy_config ALL COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/config" "${CMAKE_BINARY_DIR}/config")
+
 # Libraries
 
 find_package(Boost 1.71.0 COMPONENTS system thread REQUIRED)

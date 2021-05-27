@@ -1,17 +1,18 @@
 #include "device.h"
 
-Device::Device() {
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+Device::Device(std::string config_path, std::string id)
+    : id(id) {
+    config = load_config(config_path);
 
-    if (sockfd == -1) {
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         std::cerr << "Error socket" << std::endl;
         exit(-1);
     }
 
     memset(&device_addr, 0, sizeof(device_addr));
     device_addr.sin_family = AF_INET;
-    device_addr.sin_port = htons(2999);
-    device_addr.sin_addr.s_addr = INADDR_ANY;
+    device_addr.sin_port = htons(config["devices"][id.c_str()]["port"].GetInt());
+    device_addr.sin_addr.s_addr = inet_addr(config["devices"][id.c_str()]["ip"].GetString());
 
     if (bind(sockfd, (const sockaddr *)&device_addr, sizeof(device_addr)) == -1) {
         std::cerr << "Error bind" << std::endl;
@@ -20,8 +21,8 @@ Device::Device() {
 
     memset(&proxy_addr, 0, sizeof(proxy_addr));
     proxy_addr.sin_family = AF_INET;
-    proxy_addr.sin_port = htons(3000);
-    inet_aton("127.0.0.1", (in_addr *)&proxy_addr.sin_addr.s_addr);
+    proxy_addr.sin_port = htons(config["proxy"]["port_for_devices"].GetInt());
+    proxy_addr.sin_addr.s_addr = inet_addr(config["proxy"]["ip_for_devices"].GetString());
 
     connect(sockfd, (const sockaddr *)&proxy_addr, sizeof(proxy_addr));
 }

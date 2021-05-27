@@ -1,0 +1,18 @@
+{
+    "devices": {
+        "device0": {
+            "ip": "127.0.0.1",
+            "port": 2999,
+            "max_aaa_size": 256,
+            "resources": {}
+        }
+    },
+    "proxy": {
+        "ip_for_devices": "127.0.0.1",
+        "port_for_devices": 3000,
+        "ip_for_clients": "127.0.0.1",
+        "port_for_clients": 4000,
+        "max_tcp_size": 4096,
+        "client_queue_size": 10
+    }
+}

@@ -1,17 +1,17 @@
 #include "proxy.h"
 
-Proxy::Proxy() {
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+Proxy::Proxy(std::string config_path) {
+    config = load_config(config_path);
 
-    if (sockfd == -1) {
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         std::cerr << "Error socket" << std::endl;
         exit(-1);
     }
 
     memset(&proxy_addr_for_devices, 0, sizeof(proxy_addr_for_devices));
     proxy_addr_for_devices.sin_family = AF_INET;
-    proxy_addr_for_devices.sin_port = htons(3000);
-    proxy_addr_for_devices.sin_addr.s_addr = htonl(INADDR_ANY);
+    proxy_addr_for_devices.sin_port = htons(config["proxy"]["port_for_devices"].GetInt());
+    proxy_addr_for_devices.sin_addr.s_addr = inet_addr(config["proxy"]["ip_for_devices"].GetString());
 
     if (bind(sockfd, (const sockaddr *)&proxy_addr_for_devices, sizeof(proxy_addr_for_devices)) == -1) {
         std::cerr << "Error bind" << std::endl;
@@ -25,24 +25,22 @@ Proxy::Proxy() {
 
     connect(sockfd, (const sockaddr *)&device_addr, sizeof(device_addr));
 
-    client_sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
-    if (client_sockfd == -1) {
+    if ((client_sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         std::cerr << "Error client socket" << std::endl;
         exit(-1);
     }
 
     memset(&proxy_addr_for_clients, 0, sizeof(proxy_addr_for_clients));
     proxy_addr_for_clients.sin_family = AF_INET;
-    proxy_addr_for_clients.sin_port = htons(4000);
-    proxy_addr_for_clients.sin_addr.s_addr = INADDR_ANY;
+    proxy_addr_for_clients.sin_port = htons(config["proxy"]["port_for_clients"].GetInt());
+    proxy_addr_for_clients.sin_addr.s_addr = inet_addr(config["proxy"]["ip_for_clients"].GetString());
 
     if (bind(client_sockfd, (const sockaddr *)&proxy_addr_for_clients, sizeof(proxy_addr_for_clients)) == -1) {
         std::cerr << "Error bind" << std::endl;
         exit(-1);
     }
 
-    if (listen(client_sockfd, 10) == -1) {
+    if (listen(client_sockfd, config["proxy"]["client_queue_size"].GetInt()) == -1) {
         std::cerr << "Error listen" << std::endl;
         exit(-1);
     }
