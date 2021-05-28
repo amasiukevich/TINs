@@ -4,6 +4,11 @@ Device::Device(std::string config_path, std::string id)
     : id(id) {
     config = load_config(config_path);
 
+    if(!config["devices"].HasMember(id.c_str())){
+        std::cerr<<id<<" not present in config file"<<std::endl;
+        exit(0);
+    }
+
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         std::cerr << "Error socket" << std::endl;
         exit(-1);
@@ -30,7 +35,7 @@ Device::Device(std::string config_path, std::string id)
 Device::~Device() {
 }
 
-void Device::Run() {
+[[noreturn]] void Device::Run() {
     while (true) {
         ssize_t bytes_received = ReceivePacket();
 

@@ -12,6 +12,7 @@
 
 #include "common/aaa.h"
 #include "common/utility.h"
+#include "common/http.h"
 
 class Proxy {
 private:
@@ -22,6 +23,7 @@ private:
     sockaddr_in proxy_addr_for_devices;
     sockaddr_in proxy_addr_for_clients;
     sockaddr_in device_addr;
+    std::map<std::string, sockaddr_in> device_sock_addr;
 
     char buffer[AAA_MAX_PACKET_SIZE];
     ssize_t bytes_received;
@@ -29,10 +31,12 @@ private:
 
     std::string raw_http_response;
 
+    void init_device_sockaddr();
+
 public:
     Proxy(std::string config_path);
     ~Proxy();
-    void Run();
+    [[noreturn]] void Run();
     int AcceptClient();
     void SendData(std::string request);
     void ReceiveData();
