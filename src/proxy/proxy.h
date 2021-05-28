@@ -12,9 +12,11 @@
 
 #include "common/aaa.h"
 #include "common/utility.h"
+#include "common/http.h"
 
 class Proxy {
 private:
+
     rapidjson::Document config;
 
     int sockfd;
@@ -32,7 +34,7 @@ private:
 public:
     Proxy(std::string config_path);
     ~Proxy();
-    void Run();
+    [[noreturn]] void Run();
     int AcceptClient();
     void SendData(std::string request);
     void ReceiveData();

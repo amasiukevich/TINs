@@ -5,6 +5,12 @@
             "port": 2999,
             "max_aaa_size": 256,
             "resources": {}
+        },
+        "device1": {
+            "ip": "127.0.0.1",
+            "port": 2998,
+            "max_aaa_size": 256,
+            "resources": {}
         }
     },
     "proxy": {

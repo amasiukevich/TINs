@@ -14,7 +14,7 @@ Proxy::Proxy(std::string config_path) {
     proxy_addr_for_devices.sin_addr.s_addr = inet_addr(config["proxy"]["ip_for_devices"].GetString());
 
     if (bind(sockfd, (const sockaddr *)&proxy_addr_for_devices, sizeof(proxy_addr_for_devices)) == -1) {
-        std::cerr << "Error bind" << std::endl;
+        std::cerr << "Error bind for devcies" << std::endl;
         exit(-1);
     }
 
@@ -36,7 +36,7 @@ Proxy::Proxy(std::string config_path) {
     proxy_addr_for_clients.sin_addr.s_addr = inet_addr(config["proxy"]["ip_for_clients"].GetString());
 
     if (bind(client_sockfd, (const sockaddr *)&proxy_addr_for_clients, sizeof(proxy_addr_for_clients)) == -1) {
-        std::cerr << "Error bind" << std::endl;
+        std::cerr << "Error bind for clients" << std::endl;
         exit(-1);
     }
 
@@ -49,7 +49,7 @@ Proxy::Proxy(std::string config_path) {
 Proxy::~Proxy() {
 }
 
-void Proxy::Run() {
+[[noreturn]] void Proxy::Run() {
     while (true) {
         int connfd = AcceptClient();
 
@@ -62,10 +62,15 @@ void Proxy::Run() {
                 std::string s = std::string(buff);
 
                 std::string device_id = GetDeviceId(s);
-
-                SendData(s);
-                ReceiveData();
-
+                if(config["devices"].HasMember(device_id.c_str())){
+                    std::cout<<"Routing request to "<<device_id<<std::endl;
+                    SendData(s);
+                    ReceiveData();
+                }else{
+                    std::cout<<"Device unknown, sending back default response"<<std::endl;
+                    HTTP::Response response = HTTP::BAD_GATEWAY;
+                    raw_http_response = response.to_string();
+                }
                 send(connfd, raw_http_response.c_str(), raw_http_response.size(), 0);
                 close(connfd);
             } else {
