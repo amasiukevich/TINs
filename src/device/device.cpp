@@ -4,10 +4,12 @@ Device::Device(std::string config_path, std::string id)
     : id(id) {
     config = load_config(config_path);
 
+
     if(!config["devices"].HasMember(id.c_str())){
         std::cerr<<id<<" not present in config file"<<std::endl;
         exit(0);
     }
+    max_packet_size = config["devices"][id.c_str()]["max_aaa_size"].GetInt();
 
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         std::cerr << "Error socket" << std::endl;
@@ -113,7 +115,7 @@ bool Device::HandleRequest() {
 void Device::SendData(std::string data) {
     SetRecvTimeout(true);
 
-    auto data_chunks = chunk_data(data, AAA_MAX_DATA_SIZE);
+    auto data_chunks = chunk_data(data, max_packet_size - 1);
 
     if (data_chunks.size() > AAA_MAX_COUNT) {
         std::cerr << "Data is too long, too many fragments." << std::endl;

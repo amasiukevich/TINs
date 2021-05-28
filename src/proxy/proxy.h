@@ -23,6 +23,7 @@ private:
     sockaddr_in proxy_addr_for_devices;
     sockaddr_in proxy_addr_for_clients;
     sockaddr_in device_addr;
+    int device_chunk_size;
     std::map<std::string, sockaddr_in> device_sock_addr;
 
     char buffer[AAA_MAX_PACKET_SIZE];
@@ -31,7 +32,7 @@ private:
 
     std::string raw_http_response;
 
-    void init_device_sockaddr();
+    void set_device_data(std::string device_id);
 
 public:
     Proxy(std::string config_path);

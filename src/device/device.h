@@ -17,6 +17,7 @@ class Device {
 private:
     rapidjson::Document config;
     std::string id;
+    int max_packet_size;
 
     int sockfd;
 

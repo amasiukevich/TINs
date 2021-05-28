@@ -2,7 +2,6 @@
 
 Proxy::Proxy(std::string config_path) {
     config = load_config(config_path);
-    init_device_sockaddr();
 
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         std::cerr << "Error socket" << std::endl;
@@ -40,20 +39,6 @@ Proxy::Proxy(std::string config_path) {
     }
 }
 
-void Proxy::init_device_sockaddr() {
-    sockaddr_in temp;
-    for(auto & d : config["devices"].GetObject()){
-        std::string device_name = d.name.GetString();
-        memset(&device_addr, 0, sizeof (device_addr));
-        temp.sin_family = AF_INET;
-        temp.sin_port = htons(config["devices"][device_name.c_str()]["port"].GetInt());
-        temp.sin_addr.s_addr = inet_addr(config["devices"][device_name.c_str()]["ip"].GetString());
-
-        device_sock_addr[device_name] = temp;
-    }
-}
-
-
 Proxy::~Proxy() {
 }
 
@@ -70,9 +55,8 @@ Proxy::~Proxy() {
                 std::string s = std::string(buff);
 
                 std::string device_id = GetDeviceId(s);
-                auto elem = device_sock_addr.find(device_id);
-                if(elem != device_sock_addr.end()){
-                    device_addr = elem->second;
+                if(config["devices"].HasMember(device_id.c_str())){
+                    set_device_data(device_id);
                     std::cout<<"Routing request to "<<device_id<<std::endl;
                     SendData(s);
                     ReceiveData();
@@ -107,7 +91,7 @@ int Proxy::AcceptClient() {
 void Proxy::SendData(std::string data) {
     SetRecvTimeout(true);
 
-    auto data_chunks = chunk_data(data, AAA_MAX_DATA_SIZE);
+    auto data_chunks = chunk_data(data, device_chunk_size-1);
 
     if (data_chunks.size() > AAA_MAX_COUNT) {
         std::cerr << "Data is too long, too many fragments." << std::endl;
@@ -193,4 +177,11 @@ void Proxy::SetRecvTimeout(bool flag) {
     timeout.tv_usec = 0;
 
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+}
+void Proxy::set_device_data(std::string device_id) {
+    memset(&device_addr, 0, sizeof (device_addr));
+    device_addr.sin_family = AF_INET;
+    device_addr.sin_port = htons(config["devices"][device_id.c_str()]["port"].GetInt());
+    device_addr.sin_addr.s_addr = inet_addr(config["devices"][device_id.c_str()]["ip"].GetString());
+    device_chunk_size =config["devices"][device_id.c_str()]["max_aaa_size"].GetInt();
 }

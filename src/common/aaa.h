@@ -2,8 +2,8 @@
 
 #include <iostream>
 
-#define AAA_MAX_PACKET_SIZE 128
-#define AAA_MAX_DATA_SIZE 127
+#define AAA_MAX_PACKET_SIZE 512
+#define AAA_MAX_DATA_SIZE AAA_MAX_PACKET_SIZE - 1
 #define AAA_MAX_COUNT 63
 
 namespace AAA {
