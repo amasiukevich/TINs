@@ -1,17 +1,19 @@
 #pragma once
 
 #include <iostream>
+#include <cstring>
 
 #define AAA_MAX_PACKET_SIZE 512
-#define AAA_MAX_DATA_SIZE AAA_MAX_PACKET_SIZE - 1
-#define AAA_MAX_COUNT 63
+#define AAA_MAX_COUNT 127
 
 namespace AAA {
 
-const char TYPE_MASK = (char)0b11000000;
-const char ACK_MASK = (char)0b01000000;
-const char DATA_MASK = (char)0b10000000;
+const char TYPE_MASK =  (char)0b11000000;
+const char ACK_MASK =   (char)0b01000000;
+const char DATA_MASK =  (char)0b10000000;
 const char ERROR_MASK = (char)0b11000000;
+const char16_t COUNT_MASK = (char16_t) 0b001111111000000;
+const char SESSION_MASK = (char) 0b01111111;
 
 enum PacketType {
     UNKNOWN,  // 00
@@ -24,8 +26,12 @@ PacketType GetType(char header);
 
 void SetType(char &header, PacketType type);
 
-char GetCount(char header);
+char GetCount(char* header);
 
-void SetCount(char &header, char count);
+void SetCount(char* header, char count);
+
+char GetSessionId(char* header);
+
+void SetSessionId(char* header, char sessionId);
 
 }  // namespace AAA

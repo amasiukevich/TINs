@@ -7,21 +7,23 @@ local packet_type_mask = 0xC0
 local msg_data = 2
 local msg_ack = 1
 local msg_error = 3
+local counter_mask = 0x3F80;
+local session_mask = 0x007F;
 
 -- definitions of error codes
-local counter_mask = 0x3F
 local e_bad_source = 1
 local e_connection_broken = 2
 
 aaa_protocol = Proto("AAA", "AAA Protocol")
 
--- how do you deal with data that is not aligned with bytes?
 packet_type = ProtoField.uint8( "type", "packet type",nil, base.dec, packet_type_mask)
-number = ProtoField.uint8("new", "packet number",nil,  base.dec, counter_mask)
+number = ProtoField.uint16("num", "packet number",nil,  base.dec, counter_mask)
+session_id = ProtoField.uint16("session", "session id", nil, base.dec, session_mask)
 
 
-aaa_protocol.fields = {packet_type, number}
+aaa_protocol.fields = {packet_type, number, session_id}
 
+-- sourrce: https://stackoverflow.com/questions/32387117/bitwise-and-in-lua
 local function bitwise_and(a, b)
     local result = 0
     local bitval = 1
@@ -37,7 +39,7 @@ local function bitwise_and(a, b)
 end
 
 local function get_msg_type(code)
-    code = math.floor(code / (2^6)   )    -- shift right by 6 so that you get int representation of codes (lua 5.2 does not support bitwise operations :C)
+    code = math.floor(code / (2^6))    -- shift right by 6 so that you get int representation of codes (lua 5.2 does not support bitwise operations :C)
     local msg_type = "UNKNOWN"
     if code == msg_error then msg_type = "ERROR"
     elseif code == msg_data then msg_type = "DATA"
@@ -47,6 +49,7 @@ end
 
 local function get_error_codes(num)
     num = bitwise_and(num, counter_mask)
+    num = math.floor(num/2^7)
     local err_code = "E_UNKNOWN"
     if num == e_bad_source then err_code= "E_SOURCE"
     elseif num == e_connection_broken then err_code = "E_CONNECTION"
@@ -62,21 +65,20 @@ function aaa_protocol.dissector(buffer, pinfo, tree)
     local subtree = tree:add(aaa_protocol, buffer(), "AAA protocol data")
     local type = buffer(0,1):bytes():get_index(0)
     local typename = get_msg_type(type)
-    subtree:add(packet_type, buffer(0,1)):append_text(" (" .. typename .. ") ")
+    subtree:add(packet_type, buffer(0,1)):append_text(" [" .. typename .. "] ")
 
     local counter = buffer(0,1):bytes():get_index(0)
     if(typename == "ERROR") then
         local error_code = get_error_codes(counter)
-        subtree:add(number, buffer(0,1)):append_text(" (" .. error_code .. ")" )
+        subtree:add(number, buffer(0,2)):append_text(" [" .. error_code .. "]" )
     else
-        subtree:add(number, buffer(0,1)):append_text(" (nr) ")
+        subtree:add(number, buffer(0,2)):append_text(" [nr] ")
+        subtree:add(session_id, buffer(0,2)):append_text("[session_id]")
     end
     if (typename ~= "ACK" and length > 2) then
-        subtree:add(buffer(2, length-2), buffer(2, length-2):string()):append_text(" (payload) ")
+        subtree:add(buffer(2, length-2), buffer(2, length-2):string()):append_text(" [payload] ")
     end
 end
 
 local udp_port = DissectorTable.get("udp.port")
 udp_port:add(3000, aaa_protocol)
-
---aaa_protocol:register_heuristic("udp", heuristic_checker)

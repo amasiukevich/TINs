@@ -23,8 +23,8 @@ private:
     sockaddr_in proxy_addr_for_devices;
     sockaddr_in proxy_addr_for_clients;
     sockaddr_in device_addr;
-    int device_chunk_size;
-    std::map<std::string, sockaddr_in> device_sock_addr;
+    uint device_chunk_size;
+    std::map<std::string, int> session_id;
 
     char buffer[AAA_MAX_PACKET_SIZE];
     ssize_t bytes_received;

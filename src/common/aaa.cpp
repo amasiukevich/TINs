@@ -1,5 +1,6 @@
 #include "aaa.h"
 
+
 namespace AAA {
 
 PacketType GetType(char header) {
@@ -16,7 +17,7 @@ PacketType GetType(char header) {
     }
 }
 
-void SetType(char &header, PacketType type) {
+void SetType( char &header, PacketType type) {
     switch (type) {
         case UNKNOWN:
             std::cerr << "Invalid AAA packet type." << std::endl;
@@ -33,12 +34,24 @@ void SetType(char &header, PacketType type) {
     }
 }
 
-char GetCount(char header) {
-    return header & ~TYPE_MASK;
+char GetCount(char* header) {
+    unsigned char upper = (header[0] & ~TYPE_MASK) << 1;
+    unsigned char lower = ( (unsigned char) (header[1] & ~SESSION_MASK))>> 7;
+    auto r = upper | lower;
+    return upper | lower;
 }
 
-void SetCount(char &header, char count) {
-    header = (header & TYPE_MASK) | (count & ~TYPE_MASK);
+void SetCount(char* header, char count) {
+    *header = (*header & TYPE_MASK) | (count>>1);
+    header[1] = (header[1] & SESSION_MASK) | (count << 7);
+}
+
+char GetSessionId(char* header){
+    return header[1] & SESSION_MASK;
+}
+
+void SetSessionId(char* header, char sessionId){
+    header[1] = (header[1] & ~SESSION_MASK) | sessionId;
 }
 
 }  // namespace AAA

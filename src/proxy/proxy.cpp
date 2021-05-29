@@ -91,7 +91,7 @@ int Proxy::AcceptClient() {
 void Proxy::SendData(std::string data) {
     SetRecvTimeout(true);
 
-    auto data_chunks = chunk_data(data, device_chunk_size-1);
+    auto data_chunks = chunk_data(data, device_chunk_size-2);
 
     if (data_chunks.size() > AAA_MAX_COUNT) {
         std::cerr << "Data is too long, too many fragments." << std::endl;
@@ -102,7 +102,7 @@ void Proxy::SendData(std::string data) {
         SendPacket(AAA::PacketType::DATA, data_chunks.size() - i, data_chunks[i]);
 
         if (ReceivePacket() > 0 && AAA::GetType(buffer[0]) == AAA::PacketType::ACK) {
-            char count = AAA::GetCount(buffer[0]);
+            char16_t count = AAA::GetCount(buffer);
             std::cout << "Recv: ACK " << (int)count << std::endl;
             ++i;
         } else {
@@ -121,11 +121,11 @@ void Proxy::ReceiveData() {
 
         if (bytes_received > 0) {
             AAA::PacketType type = AAA::GetType(buffer[0]);
-            char count = AAA::GetCount(buffer[0]);
+            char16_t count = AAA::GetCount(buffer);
 
             if (type == AAA::PacketType::DATA) {
                 std::cout << "Recv: DATA " << (int)count << std::endl;
-                raw_http_response.append(buffer + 1, bytes_received - 1);
+                raw_http_response.append(buffer + 2, bytes_received - 2);
                 SendPacket(AAA::PacketType::ACK, count, "");
             }
 
@@ -140,13 +140,16 @@ void Proxy::ReceiveData() {
 }
 
 ssize_t Proxy::SendPacket(AAA::PacketType type, char count, std::string data) {
-    char header = 0;
-    AAA::SetType(header, type);
+    char header[2]{0};
+    AAA::SetType(header[0], type);
     AAA::SetCount(header, count);
+    AAA::SetSessionId(header, 99);
 
-    std::string temp = header + data;
+    std::string temp = header[1] + data;
+    temp =  header[0] + temp;
 
-    if (temp.size() > AAA_MAX_PACKET_SIZE) {
+    int s = temp.size();
+    if (temp.size() > device_chunk_size) {
         std::cerr << "Packet too large." << std::endl;
         return -1;
     }
@@ -183,5 +186,5 @@ void Proxy::set_device_data(std::string device_id) {
     device_addr.sin_family = AF_INET;
     device_addr.sin_port = htons(config["devices"][device_id.c_str()]["port"].GetInt());
     device_addr.sin_addr.s_addr = inet_addr(config["devices"][device_id.c_str()]["ip"].GetString());
-    device_chunk_size =config["devices"][device_id.c_str()]["max_aaa_size"].GetInt();
+    device_chunk_size =config["devices"][device_id.c_str()]["max_aaa_size"].GetUint();
 }

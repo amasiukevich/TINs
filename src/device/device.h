@@ -17,7 +17,8 @@ class Device {
 private:
     rapidjson::Document config;
     std::string id;
-    int max_packet_size;
+    uint max_packet_size;
+    uint session_id = 89;
 
     int sockfd;
 
@@ -31,6 +32,7 @@ private:
 
     std::string raw_http_response;
     HTTP::Response http_response;
+
 
 public:
     Device(std::string config_path, std::string id);
