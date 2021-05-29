@@ -2,11 +2,15 @@
 
 Proxy::Proxy(std::string config_path) {
     config = load_config(config_path);
-    init_device_sockaddr();
 
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         std::cerr << "Error socket" << std::endl;
         exit(-1);
+    }
+
+    for(auto &d : config["devices"].GetObject()){
+        std::string name = d.name.GetString();
+        session_ids[name] = (char)0;
     }
 
     memset(&proxy_addr_for_devices, 0, sizeof(proxy_addr_for_devices));
@@ -40,20 +44,6 @@ Proxy::Proxy(std::string config_path) {
     }
 }
 
-void Proxy::init_device_sockaddr() {
-    sockaddr_in temp;
-    for(auto & d : config["devices"].GetObject()){
-        std::string device_name = d.name.GetString();
-        memset(&device_addr, 0, sizeof (device_addr));
-        temp.sin_family = AF_INET;
-        temp.sin_port = htons(config["devices"][device_name.c_str()]["port"].GetInt());
-        temp.sin_addr.s_addr = inet_addr(config["devices"][device_name.c_str()]["ip"].GetString());
-
-        device_sock_addr[device_name] = temp;
-    }
-}
-
-
 Proxy::~Proxy() {
 }
 
@@ -70,9 +60,8 @@ Proxy::~Proxy() {
                 std::string s = std::string(buff);
 
                 std::string device_id = GetDeviceId(s);
-                auto elem = device_sock_addr.find(device_id);
-                if(elem != device_sock_addr.end()){
-                    device_addr = elem->second;
+                if(config["devices"].HasMember(device_id.c_str())){
+                    set_device_data(device_id);
                     std::cout<<"Routing request to "<<device_id<<std::endl;
                     SendData(s);
                     ReceiveData();
@@ -107,7 +96,7 @@ int Proxy::AcceptClient() {
 void Proxy::SendData(std::string data) {
     SetRecvTimeout(true);
 
-    auto data_chunks = chunk_data(data, AAA_MAX_DATA_SIZE);
+    auto data_chunks = chunk_data(data, device_chunk_size-2);
 
     if (data_chunks.size() > AAA_MAX_COUNT) {
         std::cerr << "Data is too long, too many fragments." << std::endl;
@@ -118,7 +107,7 @@ void Proxy::SendData(std::string data) {
         SendPacket(AAA::PacketType::DATA, data_chunks.size() - i, data_chunks[i]);
 
         if (ReceivePacket() > 0 && AAA::GetType(buffer[0]) == AAA::PacketType::ACK) {
-            char count = AAA::GetCount(buffer[0]);
+            char16_t count = AAA::GetCount(buffer);
             std::cout << "Recv: ACK " << (int)count << std::endl;
             ++i;
         } else {
@@ -137,11 +126,11 @@ void Proxy::ReceiveData() {
 
         if (bytes_received > 0) {
             AAA::PacketType type = AAA::GetType(buffer[0]);
-            char count = AAA::GetCount(buffer[0]);
+            char16_t count = AAA::GetCount(buffer);
 
             if (type == AAA::PacketType::DATA) {
                 std::cout << "Recv: DATA " << (int)count << std::endl;
-                raw_http_response.append(buffer + 1, bytes_received - 1);
+                raw_http_response.append(buffer + 2, bytes_received - 2);
                 SendPacket(AAA::PacketType::ACK, count, "");
             }
 
@@ -156,13 +145,15 @@ void Proxy::ReceiveData() {
 }
 
 ssize_t Proxy::SendPacket(AAA::PacketType type, char count, std::string data) {
-    char header = 0;
-    AAA::SetType(header, type);
+    char header[2]{0};
+    AAA::SetType(header[0], type);
     AAA::SetCount(header, count);
+    AAA::SetSessionId(header, current_session_id);
 
-    std::string temp = header + data;
+    std::string temp = header[1] + data;
+    temp =  header[0] + temp;
 
-    if (temp.size() > AAA_MAX_PACKET_SIZE) {
+    if (temp.size() > device_chunk_size) {
         std::cerr << "Packet too large." << std::endl;
         return -1;
     }
@@ -193,4 +184,13 @@ void Proxy::SetRecvTimeout(bool flag) {
     timeout.tv_usec = 0;
 
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+}
+void Proxy::set_device_data(std::string device_id) {
+    memset(&device_addr, 0, sizeof (device_addr));
+    device_addr.sin_family = AF_INET;
+    device_addr.sin_port = htons(config["devices"][device_id.c_str()]["port"].GetInt());
+    device_addr.sin_addr.s_addr = inet_addr(config["devices"][device_id.c_str()]["ip"].GetString());
+    device_chunk_size =config["devices"][device_id.c_str()]["max_aaa_size"].GetUint();
+    session_ids[device_id]++;
+    current_session_id = session_ids[device_id];
 }

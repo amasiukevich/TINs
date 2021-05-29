@@ -9,7 +9,7 @@
         "device1": {
             "ip": "127.0.0.1",
             "port": 2998,
-            "max_aaa_size": 256,
+            "max_aaa_size": 128,
             "resources": {}
         }
     },

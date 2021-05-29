@@ -1,13 +1,15 @@
 #include "device.h"
 
 Device::Device(std::string config_path, std::string id)
-    : id(id) {
+    : id(id), session_id(-1) {
     config = load_config(config_path);
+
 
     if(!config["devices"].HasMember(id.c_str())){
         std::cerr<<id<<" not present in config file"<<std::endl;
         exit(0);
     }
+    max_packet_size = config["devices"][id.c_str()]["max_aaa_size"].GetUint();
 
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
         std::cerr << "Error socket" << std::endl;
@@ -38,15 +40,24 @@ Device::~Device() {
 [[noreturn]] void Device::Run() {
     while (true) {
         ssize_t bytes_received = ReceivePacket();
+        //todo set session id
 
         if (bytes_received > 0) {
             AAA::PacketType type = AAA::GetType(buffer[0]);
-            char count = AAA::GetCount(buffer[0]);
-
+            char count = AAA::GetCount(buffer);
             if (type == AAA::PacketType::DATA) {
-                std::cout << "Recv: DATA " << (int)count << std::endl;
-                raw_http_request.append(buffer + 1, bytes_received - 1);
-                SendPacket(AAA::PacketType::ACK, count, "");
+                char curr_session_id = AAA::GetSessionId(buffer);
+                if(session_id == -1){
+                    session_id = curr_session_id;
+                }else if(curr_session_id == session_id){
+                    std::cout << "Recv: DATA " << (int)count << std::endl;
+                    raw_http_request.append(buffer + 1, bytes_received - 1);
+                    SendPacket(AAA::PacketType::ACK, count, "");
+                    std::cout<<"Ack sent"<<std::endl;
+                }else{
+                    std::cout<<"Send: ERROR"<<std::endl;
+                    SendPacket(AAA::ERROR, 0, "");
+                }
             }
 
             if (count == 1) {
@@ -57,6 +68,7 @@ Device::~Device() {
                         SendData(http_response.to_string());
                     }
                 }
+                session_id = -1;
             }
         } else {
             std::cerr << "Error: failed to receive." << std::endl;
@@ -65,13 +77,14 @@ Device::~Device() {
 }
 
 ssize_t Device::SendPacket(AAA::PacketType type, char count, std::string data) {
-    char header = 0;
-    AAA::SetType(header, type);
+    char header[2]{0};
+    AAA::SetType(header[0], type);
     AAA::SetCount(header, count);
+    AAA::SetSessionId(header, session_id);
 
     std::string temp = header + data;
 
-    if (temp.size() > AAA_MAX_PACKET_SIZE) {
+    if (temp.size() > max_packet_size) {
         std::cerr << "Packet too large." << std::endl;
         return -1;
     }
@@ -113,7 +126,7 @@ bool Device::HandleRequest() {
 void Device::SendData(std::string data) {
     SetRecvTimeout(true);
 
-    auto data_chunks = chunk_data(data, AAA_MAX_DATA_SIZE);
+    auto data_chunks = chunk_data(data, max_packet_size - 2);
 
     if (data_chunks.size() > AAA_MAX_COUNT) {
         std::cerr << "Data is too long, too many fragments." << std::endl;
@@ -124,7 +137,7 @@ void Device::SendData(std::string data) {
         SendPacket(AAA::PacketType::DATA, data_chunks.size() - i, data_chunks[i]);
 
         if (ReceivePacket() > 0 && AAA::GetType(buffer[0]) == AAA::PacketType::ACK) {
-            char count = AAA::GetCount(buffer[0]);
+            char16_t count = AAA::GetCount(buffer);
             std::cout << "Recv: ACK " << (int)count << std::endl;
             ++i;
         } else {
