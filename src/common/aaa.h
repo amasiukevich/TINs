@@ -12,7 +12,6 @@ const char TYPE_MASK =  (char)0b11000000;
 const char ACK_MASK =   (char)0b01000000;
 const char DATA_MASK =  (char)0b10000000;
 const char ERROR_MASK = (char)0b11000000;
-const char16_t COUNT_MASK = (char16_t) 0b001111111000000;
 const char SESSION_MASK = (char) 0b01111111;
 
 enum PacketType {

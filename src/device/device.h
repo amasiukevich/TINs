@@ -18,7 +18,7 @@ private:
     rapidjson::Document config;
     std::string id;
     uint max_packet_size;
-    uint session_id = 89;
+    char session_id;
 
     int sockfd;
 

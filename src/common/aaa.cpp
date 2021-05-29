@@ -37,7 +37,6 @@ void SetType( char &header, PacketType type) {
 char GetCount(char* header) {
     unsigned char upper = (header[0] & ~TYPE_MASK) << 1;
     unsigned char lower = ( (unsigned char) (header[1] & ~SESSION_MASK))>> 7;
-    auto r = upper | lower;
     return upper | lower;
 }
 

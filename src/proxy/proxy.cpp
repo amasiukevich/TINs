@@ -8,6 +8,11 @@ Proxy::Proxy(std::string config_path) {
         exit(-1);
     }
 
+    for(auto &d : config["devices"].GetObject()){
+        std::string name = d.name.GetString();
+        session_ids[name] = (char)0;
+    }
+
     memset(&proxy_addr_for_devices, 0, sizeof(proxy_addr_for_devices));
     proxy_addr_for_devices.sin_family = AF_INET;
     proxy_addr_for_devices.sin_port = htons(config["proxy"]["port_for_devices"].GetInt());
@@ -143,12 +148,11 @@ ssize_t Proxy::SendPacket(AAA::PacketType type, char count, std::string data) {
     char header[2]{0};
     AAA::SetType(header[0], type);
     AAA::SetCount(header, count);
-    AAA::SetSessionId(header, 99);
+    AAA::SetSessionId(header, current_session_id);
 
     std::string temp = header[1] + data;
     temp =  header[0] + temp;
 
-    int s = temp.size();
     if (temp.size() > device_chunk_size) {
         std::cerr << "Packet too large." << std::endl;
         return -1;
@@ -187,4 +191,6 @@ void Proxy::set_device_data(std::string device_id) {
     device_addr.sin_port = htons(config["devices"][device_id.c_str()]["port"].GetInt());
     device_addr.sin_addr.s_addr = inet_addr(config["devices"][device_id.c_str()]["ip"].GetString());
     device_chunk_size =config["devices"][device_id.c_str()]["max_aaa_size"].GetUint();
+    session_ids[device_id]++;
+    current_session_id = session_ids[device_id];
 }

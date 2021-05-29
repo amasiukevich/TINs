@@ -1,7 +1,7 @@
 #include "device.h"
 
 Device::Device(std::string config_path, std::string id)
-    : id(id) {
+    : id(id), session_id(-1) {
     config = load_config(config_path);
 
 
@@ -44,13 +44,20 @@ Device::~Device() {
 
         if (bytes_received > 0) {
             AAA::PacketType type = AAA::GetType(buffer[0]);
-            char16_t count = AAA::GetCount(buffer);
-
+            char count = AAA::GetCount(buffer);
             if (type == AAA::PacketType::DATA) {
-                std::cout << "Recv: DATA " << (int)count << std::endl;
-                raw_http_request.append(buffer + 1, bytes_received - 1);
-                SendPacket(AAA::PacketType::ACK, count, "");
-                std::cout<<"Ack sent"<<std::endl;
+                char curr_session_id = AAA::GetSessionId(buffer);
+                if(session_id == -1){
+                    session_id = curr_session_id;
+                }else if(curr_session_id == session_id){
+                    std::cout << "Recv: DATA " << (int)count << std::endl;
+                    raw_http_request.append(buffer + 1, bytes_received - 1);
+                    SendPacket(AAA::PacketType::ACK, count, "");
+                    std::cout<<"Ack sent"<<std::endl;
+                }else{
+                    std::cout<<"Send: ERROR"<<std::endl;
+                    SendPacket(AAA::ERROR, 0, "");
+                }
             }
 
             if (count == 1) {
@@ -61,6 +68,7 @@ Device::~Device() {
                         SendData(http_response.to_string());
                     }
                 }
+                session_id = -1;
             }
         } else {
             std::cerr << "Error: failed to receive." << std::endl;
