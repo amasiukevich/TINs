@@ -3,7 +3,7 @@ Simple proxy server for the sensor network
 
 ## Build, Test, Run
 ```
-git submodule update --init --recursive
+git submodule update --init_logger --recursive
 ```
 ```
 mkdir build

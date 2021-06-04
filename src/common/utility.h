@@ -1,5 +1,8 @@
 #pragma once
 
+#include <spdlog/logger.h>
+#include <spdlog/sinks/basic_file_sink.h>
+
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -16,6 +19,7 @@ std::vector<std::string> chunk_data(std::string &data, size_t chunk_size);
 rapidjson::Document load_config(std::string filepath);
 
 std::vector<std::string> split_string(std::string s, std::string delimiter);
+std::shared_ptr<spdlog::logger> init_logger(std::string deviceName);
 
 template <typename T>
 std::string json_to_string(T &o) {

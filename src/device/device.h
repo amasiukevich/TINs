@@ -16,6 +16,8 @@
 class Device {
 private:
     rapidjson::Document config;
+    std::shared_ptr<spdlog::logger> logger;
+
     std::string id;
     uint max_packet_size;
     char session_id;

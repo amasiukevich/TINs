@@ -7,7 +7,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -Wall -Wextra -pedantic")
 add_custom_target(copy_config ALL COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/config" "${CMAKE_BINARY_DIR}/config")
 
 # Libraries
-
+ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)
 find_package(Boost 1.71.0 COMPONENTS system thread REQUIRED)
 add_subdirectory(lib/googletest)
 
@@ -19,6 +19,7 @@ include_directories(
     ${Boost_INCLUDE_DIRS}
     lib/rapidjson/include
     lib/googletest/googletest/include
+    lib/spdlog/include
 )
 
 # Source files
@@ -45,16 +46,16 @@ file(GLOB COMMON_FILES
 add_executable(device ${DEVICE_FILES} ${COMMON_FILES})
 target_link_libraries(device pthread ${Boost_LIBRARIES})
 
-add_executable(proxy ${PROXY_FILES} ${COMMON_FILES})
+add_executable(proxy ${PROXY_FILES} ${COMMON_FILES} )
 target_link_libraries(proxy pthread ${Boost_LIBRARIES})
 
-add_executable(client ${CLIENT_FILES} ${COMMON_FILES})
+add_executable(client ${CLIENT_FILES} ${COMMON_FILES} )
 target_link_libraries(client pthread ${Boost_LIBRARIES})
 
 # Tests 
 
 enable_testing()
 
-add_executable(test1 test/test1.cpp ${COMMON_FILES})
+add_executable(test1 test/aaa_packet.cpp ${COMMON_FILES})
 target_link_libraries(test1 pthread ${Boost_LIBRARIES} gtest)
 add_test(test1 test1)

@@ -3,16 +3,16 @@
 Device::Device(std::string config_path, std::string id)
     : id(id), session_id(-1) {
     config = load_config(config_path);
-
+    logger = init_logger(id);
 
     if(!config["devices"].HasMember(id.c_str())){
-        std::cerr<<id<<" not present in config file"<<std::endl;
+        logger->error("Device {} not present in config file", id);
         exit(0);
     }
     max_packet_size = config["devices"][id.c_str()]["max_aaa_size"].GetUint();
 
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-        std::cerr << "Error socket" << std::endl;
+        logger->error("Could not create socket");
         exit(-1);
     }
 
@@ -22,7 +22,7 @@ Device::Device(std::string config_path, std::string id)
     device_addr.sin_addr.s_addr = inet_addr(config["devices"][id.c_str()]["ip"].GetString());
 
     if (bind(sockfd, (const sockaddr *)&device_addr, sizeof(device_addr)) == -1) {
-        std::cerr << "Error bind" << std::endl;
+        logger->error("Could not bind socket to device port");
         exit(-1);
     }
 
@@ -32,15 +32,18 @@ Device::Device(std::string config_path, std::string id)
     proxy_addr.sin_addr.s_addr = inet_addr(config["proxy"]["ip_for_devices"].GetString());
 
     connect(sockfd, (const sockaddr *)&proxy_addr, sizeof(proxy_addr));
+
+    logger->info("Created device [{}] on port {}", id, config["devices"][id.c_str()]["port"].GetInt());
+    logger->flush();
 }
 
 Device::~Device() {
+    logger->flush();
 }
 
 [[noreturn]] void Device::Run() {
     while (true) {
         ssize_t bytes_received = ReceivePacket();
-        //todo set session id
 
         if (bytes_received > 0) {
             AAA::PacketType type = AAA::GetType(buffer[0]);
@@ -49,13 +52,19 @@ Device::~Device() {
                 char curr_session_id = AAA::GetSessionId(buffer);
                 if(session_id == -1){
                     session_id = curr_session_id;
-                }else if(curr_session_id == session_id){
-                    std::cout << "Recv: DATA " << (int)count << std::endl;
+                    logger->info("New session id {} DATA {} received.", session_id, (int)count);
                     raw_http_request.append(buffer + 1, bytes_received - 1);
                     SendPacket(AAA::PacketType::ACK, count, "");
-                    std::cout<<"Ack sent"<<std::endl;
+                    logger->info("Sent ACK{}", (int) count);
+                }else if(curr_session_id == session_id){
+                    logger->info("Session id {} DATA {} received.", session_id, (int)count);
+                    raw_http_request.append(buffer + 1, bytes_received - 1);
+                    SendPacket(AAA::PacketType::ACK, count, "");
+                    logger->info("Sent ACK{}", (int) count);
                 }else{
-                    std::cout<<"Send: ERROR"<<std::endl;
+                    std::string data;
+                    data.append(buffer + 1, bytes_received - 1);
+                    logger->info("Sending ERROR, for packet: {}", data);
                     SendPacket(AAA::ERROR, 0, "");
                 }
             }
@@ -71,7 +80,7 @@ Device::~Device() {
                 session_id = -1;
             }
         } else {
-            std::cerr << "Error: failed to receive." << std::endl;
+            logger->info("Error while receiving packet");
         }
     }
 }
@@ -85,7 +94,7 @@ ssize_t Device::SendPacket(AAA::PacketType type, char count, std::string data) {
     std::string temp = header + data;
 
     if (temp.size() > max_packet_size) {
-        std::cerr << "Packet too large." << std::endl;
+        logger->error("Packet too large");
         return -1;
     }
 
@@ -129,7 +138,7 @@ void Device::SendData(std::string data) {
     auto data_chunks = chunk_data(data, max_packet_size - 2);
 
     if (data_chunks.size() > AAA_MAX_COUNT) {
-        std::cerr << "Data is too long, too many fragments." << std::endl;
+        logger->error("Data is too long, too many fragments.");
         return;
     }
 
@@ -138,10 +147,10 @@ void Device::SendData(std::string data) {
 
         if (ReceivePacket() > 0 && AAA::GetType(buffer[0]) == AAA::PacketType::ACK) {
             char16_t count = AAA::GetCount(buffer);
-            std::cout << "Recv: ACK " << (int)count << std::endl;
+            logger->info("Received ACK{}", (int)count);
             ++i;
         } else {
-            std::cout << "Didn't get ACK. Sending again." << std::endl;
+            logger->error("Didnt receive ACK. Resending");
         }
     }
 

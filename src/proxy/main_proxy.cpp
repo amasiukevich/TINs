@@ -8,6 +8,4 @@ int main(int argc, char **argv) {
     }
 
     Proxy(std::string(argv[1])).Run();
-
-    return 0;
 }
