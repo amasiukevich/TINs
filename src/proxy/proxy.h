@@ -14,9 +14,11 @@
 #include "common/utility.h"
 #include "common/http.h"
 
+
 class Proxy {
 private:
     rapidjson::Document config;
+    std::shared_ptr<spdlog::logger> logger;
 
     int sockfd;
     int client_sockfd;
@@ -28,7 +30,6 @@ private:
     std::map<std::string, char> session_ids;
 
     char buffer[AAA_MAX_PACKET_SIZE];
-    ssize_t bytes_received;
     ssize_t bytes_sent;
 
     std::string raw_http_response;

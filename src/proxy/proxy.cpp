@@ -2,9 +2,11 @@
 
 Proxy::Proxy(std::string config_path) {
     config = load_config(config_path);
+    logger = init_logger("proxy");
+    logger->info("Created proxy - device port:{}, client port:{}", config["proxy"]["port_for_clients"].GetInt(), config["proxy"]["port_for_devices"].GetInt());
 
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-        std::cerr << "Error socket" << std::endl;
+        logger->error("Error creating sockets");
         exit(-1);
     }
 
@@ -19,12 +21,12 @@ Proxy::Proxy(std::string config_path) {
     proxy_addr_for_devices.sin_addr.s_addr = inet_addr(config["proxy"]["ip_for_devices"].GetString());
 
     if (bind(sockfd, (const sockaddr *)&proxy_addr_for_devices, sizeof(proxy_addr_for_devices)) == -1) {
-        std::cerr << "Error bind for devcies" << std::endl;
+        logger->error("Could not bind proxy address for devices");
         exit(-1);
     }
 
     if ((client_sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        std::cerr << "Error client socket" << std::endl;
+        logger->error("Error creating client socket");
         exit(-1);
     }
 
@@ -34,14 +36,15 @@ Proxy::Proxy(std::string config_path) {
     proxy_addr_for_clients.sin_addr.s_addr = inet_addr(config["proxy"]["ip_for_clients"].GetString());
 
     if (bind(client_sockfd, (const sockaddr *)&proxy_addr_for_clients, sizeof(proxy_addr_for_clients)) == -1) {
-        std::cerr << "Error bind for clients" << std::endl;
+        logger->error("Could not bind proxy address for clients");
         exit(-1);
     }
 
     if (listen(client_sockfd, config["proxy"]["client_queue_size"].GetInt()) == -1) {
-        std::cerr << "Error listen" << std::endl;
+        logger->error("Client queue not empty on startup");
         exit(-1);
     }
+    logger->flush();
 }
 
 Proxy::~Proxy() {
@@ -62,21 +65,22 @@ Proxy::~Proxy() {
                 std::string device_id = GetDeviceId(s);
                 if(config["devices"].HasMember(device_id.c_str())){
                     set_device_data(device_id);
-                    std::cout<<"Routing request to "<<device_id<<std::endl;
+                    logger->info("New client request. Routing to: {}", device_id);
                     SendData(s);
                     ReceiveData();
                 }else{
-                    std::cout<<"Device unknown, sending back default response"<<std::endl;
+                    logger->info("{} unknown, sending BAD::GATEWAY", device_id);
                     HTTP::Response response = HTTP::BAD_GATEWAY;
                     raw_http_response = response.to_string();
                 }
                 send(connfd, raw_http_response.c_str(), raw_http_response.size(), 0);
                 close(connfd);
             } else {
-                std::cout << "TCP closed" << std::endl;
+                logger->info("TCP connection closed");
                 break;
             }
         }
+        logger->flush();A
     }
 }
 
@@ -86,7 +90,7 @@ int Proxy::AcceptClient() {
     int connfd = accept(client_sockfd, (sockaddr *)&client_addr, &len);
 
     if (connfd == -1) {
-        std::cerr << "Error accept" << std::endl;
+        logger->error("Error accepting client connection");
         exit(-1);
     }
 
@@ -99,22 +103,23 @@ void Proxy::SendData(std::string data) {
     auto data_chunks = chunk_data(data, device_chunk_size-2);
 
     if (data_chunks.size() > AAA_MAX_COUNT) {
-        std::cerr << "Data is too long, too many fragments." << std::endl;
+        logger->error("Data is too long, too many fragments.");
         return;
     }
 
     for (unsigned char i = 0; i < data_chunks.size();) {
         SendPacket(AAA::PacketType::DATA, data_chunks.size() - i, data_chunks[i]);
 
+        //todo reject packets with wrong ACK or session id (by sending back error)
         if (ReceivePacket() > 0 && AAA::GetType(buffer[0]) == AAA::PacketType::ACK) {
             char16_t count = AAA::GetCount(buffer);
-            std::cout << "Recv: ACK " << (int)count << std::endl;
+            logger->info("Session {}, ACK {} received and accepted", current_session_id, (int) count);
             ++i;
         } else {
-            std::cout << "Didn't get ACK. Sending again." << std::endl;
+            //todo add max retries
+            logger->info("Timed out while waiting for ACK. Resending");
         }
     }
-
     SetRecvTimeout(false);
 }
 
@@ -129,8 +134,9 @@ void Proxy::ReceiveData() {
             char16_t count = AAA::GetCount(buffer);
 
             if (type == AAA::PacketType::DATA) {
-                std::cout << "Recv: DATA " << (int)count << std::endl;
+                logger->info("Session {}, DATA {} received and accepted", current_session_id, (int) count);
                 raw_http_response.append(buffer + 2, bytes_received - 2);
+                logger->info("Session {}, sending back ACK {}", current_session_id, (int) count);
                 SendPacket(AAA::PacketType::ACK, count, "");
             }
 
@@ -139,7 +145,7 @@ void Proxy::ReceiveData() {
                 return;
             }
         } else {
-            std::cerr << "Error: failed to receive." << std::endl;
+            logger->error("Session id {} -  Failed to receive data", current_session_id);
         }
     }
 }

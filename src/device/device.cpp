@@ -49,6 +49,10 @@ Device::~Device() {
                 char curr_session_id = AAA::GetSessionId(buffer);
                 if(session_id == -1){
                     session_id = curr_session_id;
+                    std::cout << "Recv: DATA " << (int)count << std::endl;
+                    raw_http_request.append(buffer + 1, bytes_received - 1);
+                    SendPacket(AAA::PacketType::ACK, count, "");
+                    std::cout<<"Ack sent"<<std::endl;
                 }else if(curr_session_id == session_id){
                     std::cout << "Recv: DATA " << (int)count << std::endl;
                     raw_http_request.append(buffer + 1, bytes_received - 1);

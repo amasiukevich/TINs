@@ -52,3 +52,14 @@ std::vector<std::string> split_string(std::string s, std::string delimiter) {
 
     return items;
 }
+
+std::shared_ptr<spdlog::logger> init_logger(std::string deviceName){
+    std::shared_ptr<spdlog::logger> logger;
+    try{
+        logger = spdlog::basic_logger_mt(deviceName, "logs/" + deviceName + ".log");
+    }catch (const spdlog::spdlog_ex& ex){
+        std::cout << "Failed to initialize logs: "<< ex.what()<<std::endl;
+        exit(0);
+    }
+    return logger;
+}
