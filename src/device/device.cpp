@@ -47,29 +47,41 @@ Device::~Device() {
 
         if (bytes_received > 0) {
             AAA::PacketType type = AAA::GetType(buffer[0]);
-            char count = AAA::GetCount(buffer);
+            char in_counter = AAA::GetCount(buffer);
+            if(packet_counter == -1){
+                packet_counter = in_counter;
+            }else if(packet_counter != in_counter){
+                in_counter ++;
+                logger->error("Reviced packet with wrong counter. Recv: {}, Expected: {}", (int)in_counter, (int)packet_counter);
+                std::string data;
+                data.append(buffer + AAA_HEADER_SIZE, bytes_received - AAA_HEADER_SIZE);
+                logger->info("Sending ERROR, for packet: {}", data);
+                SendPacket(AAA::ERROR, 0, "");
+                continue;
+            }
             if (type == AAA::PacketType::DATA) {
                 char curr_session_id = AAA::GetSessionId(buffer);
                 if(session_id == -1){
                     session_id = curr_session_id;
-                    logger->info("New session id {} DATA {} received.", session_id, (int)count);
-                    raw_http_request.append(buffer + 1, bytes_received - 1);
-                    SendPacket(AAA::PacketType::ACK, count, "");
-                    logger->info("Sent ACK{}", (int) count);
+                    logger->info("New session id {} DATA {} received.", session_id, (int)packet_counter);
                 }else if(curr_session_id == session_id){
-                    logger->info("Session id {} DATA {} received.", session_id, (int)count);
-                    raw_http_request.append(buffer + 1, bytes_received - 1);
-                    SendPacket(AAA::PacketType::ACK, count, "");
-                    logger->info("Sent ACK{}", (int) count);
+                    logger->info("Session id {} DATA {} received.", session_id, (int)packet_counter);
                 }else{
                     std::string data;
-                    data.append(buffer + 1, bytes_received - 1);
+                    data.append(buffer + AAA_HEADER_SIZE, bytes_received - AAA_HEADER_SIZE);
                     logger->info("Sending ERROR, for packet: {}", data);
                     SendPacket(AAA::ERROR, 0, "");
+                    continue;
                 }
+                raw_http_request.append(buffer + AAA_HEADER_SIZE, bytes_received - AAA_HEADER_SIZE);
+                SendPacket(AAA::PacketType::ACK, packet_counter, "");
+                logger->info("Sent ACK{}", (int) packet_counter);
+            }else{
+                //todo what should be the response for wrong packet type
+                logger->info("Received packet of unexpected type. Recv:{}, expected: {}", type, AAA::PacketType::DATA);
             }
 
-            if (count == 1) {
+            if (packet_counter == 1) {
                 if (ParseRequest()) {
                     raw_http_request = "";
                     logger->info("Received http request: " + http_request.to_string());
@@ -77,7 +89,7 @@ Device::~Device() {
                         logger->info("Sending back response: " + http_response.to_string());
                     }else{
                         http_response = HTTP::NOT_IMPLEMENTED;
-                        logger->info("Could not handle request. Sending back defalut response: " + http_response.to_string());
+                        logger->info("Could not handle request. Sending back default response: " + http_response.to_string());
                     }
                     SendData(http_response.to_string());
                 }
@@ -156,7 +168,11 @@ void Device::SendData(std::string data) {
             ++i;
             retransmission_counter = 0;
         } else {
-            logger->error("Didnt receive ACK. Resending");
+            logger->error("Didnt receive ACK. Resending. Resend counter {}", retransmission_counter);
+            if(retransmission_counter >= AAA_MAX_RETRANSMISSIONS){
+                logger->error("Max number of retransmissions reached. Aborting... ");
+                return;
+            }
             retransmission_counter ++;
         }
     }

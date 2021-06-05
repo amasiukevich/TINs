@@ -168,7 +168,7 @@ void Proxy::ReceiveDataDevice(){
 
             if (type == AAA::PacketType::DATA) {
                 logger->info("Session {}, DATA {} received and accepted", current_session_id, (int) count);
-                raw_http_response.append(buffer + 2, bytes_received - 2);
+                raw_http_response.append(buffer + AAA_HEADER_SIZE, bytes_received - AAA_HEADER_SIZE);
                 logger->info("Session {}, sending back ACK {}", current_session_id, (int) count);
                 SendPacket(AAA::PacketType::ACK, count, "");
             }
