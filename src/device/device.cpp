@@ -5,6 +5,7 @@ Device::Device(std::string config_path, std::string id)
     , session_id(-1) {
     config = load_config(config_path);
     logger = init_logger(id);
+    logger->flush_on(spdlog::level::info);
 
     if (!config["devices"].HasMember(id.c_str())) {
         logger->error("Device {} not present in config file", id);
@@ -36,11 +37,9 @@ Device::Device(std::string config_path, std::string id)
     connect(sockfd, (const sockaddr *)&proxy_addr, sizeof(proxy_addr));
 
     logger->info("Created device {} on port {}", id, config["devices"][id.c_str()]["port"].GetInt());
-    logger->flush();
 }
 
 Device::~Device() {
-    logger->flush();
 }
 
 [[noreturn]] void Device::Run() {

@@ -3,6 +3,7 @@
 Proxy::Proxy(std::string config_path) {
     config = load_config(config_path);
     logger = init_logger("proxy");
+    logger->flush_on(spdlog::level::info);
     logger->info("Created proxy - device port:{}, client port:{}", config["proxy"]["port_for_clients"].GetInt(), config["proxy"]["port_for_devices"].GetInt());
 
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
@@ -44,11 +45,9 @@ Proxy::Proxy(std::string config_path) {
         logger->error("Client queue not empty on startup");
         exit(-1);
     }
-    logger->flush();
 }
 
 Proxy::~Proxy() {
-    logger->flush();
 }
 
 [[noreturn]] void Proxy::Run() {
@@ -103,8 +102,6 @@ Proxy::~Proxy() {
                 break;
             }
         }
-
-        logger->flush();
     }
 }
 
