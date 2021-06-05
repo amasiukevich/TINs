@@ -79,12 +79,11 @@ Proxy::~Proxy() {
                         ReceiveDataDevice();
 
                         logger->info("Communication successful, sending response back to client.");
-                    } catch (MaxRetransmissionsReachedException &ignored) {
+                    } catch (MaxRetransmissionsReachedException &) {
                         logger->error("Max retransmissions reached. Sending back default response.");
                         HTTP::Response response = HTTP::SERVICE_UNAVAILABLE;
                         raw_http_response = response.to_string();
                     } catch (...) {
-                        logger->error("Unknown error.");
                         HTTP::Response response = HTTP::INTERNAL_SERVER_ERROR;
                         raw_http_response = response.to_string();
                     }
@@ -145,6 +144,7 @@ void Proxy::SendDataDevice(std::string data) {
                     if (ack_num == data_chunks.size() - i) {
                         logger->info("Session {}, ACK {} received and accepted", current_session_id, (int)ack_num);
                         ++i;
+                        retry_counter = 0;
                     } else {
                         logger->info("Received ACK packet with wrong number. Got {}, expected{}. Resending data. Retransmission counter: {}", ack_num, data_chunks.size() - i, retry_counter);
                     }
@@ -154,9 +154,9 @@ void Proxy::SendDataDevice(std::string data) {
                     retry_counter++;
                 }
             } else {
-                //todo what is an appropriate reaction for wrong packet type? Does immediate resending comply with plans?
-                logger->info("Received unexpected packet type {}. Incoming packet ignored. Resending. Retransmission counter: {}", (int)type, retry_counter);
-                retry_counter++;
+                SendPacket(AAA::PacketType::ERROR, 0, current_session_id, AAA::Error::WRONG_TYPE);
+                logger->info("Received unexpected packet type {}. Incoming packet ignored.", (int)type);
+                throw;
             }
         } else {
             logger->info("Timed out while waiting for ACK. Resending. Retransmission counter: {}", retry_counter);
@@ -182,6 +182,13 @@ void Proxy::ReceiveDataDevice() {
         if (bytes_received > 0) {
             AAA::PacketType type = AAA::GetType(buffer[0]);
             char count = AAA::GetCount(buffer);
+            char incoming_session_id = AAA::GetSessionId(buffer);
+
+            if (incoming_session_id != current_session_id) {
+                SendPacket(AAA::PacketType::ERROR, 0, current_session_id, AAA::Error::WRONG_SESSION);
+                logger->info("Recived packet with wrong session id. Received: {}, expected: {}. Ignored and resending.", (int)incoming_session_id, (int)current_session_id);
+                throw;
+            }
 
             if (type == AAA::PacketType::DATA) {
                 logger->info("Session {}, DATA {} received and accepted", current_session_id, (int)count);
