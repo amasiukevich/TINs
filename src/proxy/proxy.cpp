@@ -73,7 +73,6 @@ Proxy::~Proxy() {
                         logger->info("Communication successful, sending response back to client.");
                     }catch(MaxRetransmissionsReachedException &ignored){
                            logger->error("Max retransmissions reached. Sending back default response.");
-                           std::cout<<"Max retransmissions";
                            HTTP::Response response = HTTP::SERVICE_UNAVAILABLE;
                            raw_http_response = response.to_string();
                     }
@@ -120,42 +119,44 @@ void Proxy::SendDataDevice(std::string data) {
     for (unsigned char i = 0; i < data_chunks.size();) {
         SendPacket(AAA::PacketType::DATA, data_chunks.size() - i, data_chunks[i]);
 
-        if(ReceivePacket() > 0){
+        if (ReceivePacket() > 0) {
             char type = AAA::GetType(buffer[0]);
-            if(type == AAA::PacketType::ACK){
+            if (type == AAA::PacketType::ACK) {
                 char incoming_session_id = AAA::GetSessionId(buffer);
-                if(incoming_session_id == current_session_id){
+                if (incoming_session_id == current_session_id) {
                     unsigned int ack_num = (unsigned char)AAA::GetCount(buffer);
-                    if(ack_num == data_chunks.size()-i){
-                        logger->info("Session {}, ACK {} received and accepted", current_session_id, (int) ack_num);
+                    if (ack_num == data_chunks.size() - i) {
+                        logger->info("Session {}, ACK {} received and accepted", current_session_id, (int)ack_num);
                         ++i;
-                    }else{
+                    } else {
                         logger->info("Received ACK packet with wrong number. Got {}, expected{}. Resending data. Retransmission counter: {}",
-                                     ack_num, data_chunks.size()-i, retry_counter);
+                                     ack_num, data_chunks.size() - i, retry_counter);
+
                     }
-                }else{
+                } else {
                     //todo send back error packet
                     logger->info("Recived packet with wrong session id. Received: {}, expected: {}. Ignored and resending. Retransmission counter: {}",
                                  (int)incoming_session_id, (int)current_session_id, retry_counter);
-                    retry_counter ++;
+                    retry_counter++;
                 }
-            }else{
+            } else {
                 //todo what is an appropriate reaction for wrong packet type? Does immediate resending comply with plans?
                 logger->info("Received unexpected packet type {}. Incoming packet ignored. Resending. Retransmission counter: {}", (int)type, retry_counter);
-                retry_counter ++;
+                retry_counter++;
             }
-        }else{
+        } else {
             logger->info("Timed out while waiting for ACK. Resending. Retransmission counter: {}", retry_counter);
-            if(retry_counter > AAA_MAX_RETRANSMISSIONS){
+            if (retry_counter > AAA_MAX_RETRANSMISSIONS) {
                 logger->error("Received max retransmission number. Aborting...");
                 throw MaxRetransmissionsReachedException();
             }
-            retry_counter ++;
+            retry_counter++;
         }
+    }
     SetRecvTimeout(false);
 }
 
-void Proxy::ReceiveDataDevice() {
+void Proxy::ReceiveDataDevice(){
     raw_http_response = "";
 
     while (true) {
@@ -173,7 +174,7 @@ void Proxy::ReceiveDataDevice() {
             }
 
             if (count == 1) {
-                std::cout << raw_http_response << std::endl;
+                logger->info("Received full response from device: {}", raw_http_response);
                 return;
             }
         } else {

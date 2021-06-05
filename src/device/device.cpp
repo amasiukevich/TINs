@@ -75,8 +75,11 @@ Device::~Device() {
                     logger->info("Received http request: " + http_request.to_string());
                     if (HandleRequest()) {
                         logger->info("Sending back response: " + http_response.to_string());
-                        SendData(http_response.to_string());
+                    }else{
+                        http_response = HTTP::NOT_IMPLEMENTED;
+                        logger->info("Could not handle request. Sending back defalut response: " + http_response.to_string());
                     }
+                    SendData(http_response.to_string());
                 }
                 session_id = -1;
             }
