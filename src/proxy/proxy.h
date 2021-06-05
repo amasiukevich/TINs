@@ -11,10 +11,9 @@
 #include <memory>
 
 #include "common/aaa.h"
-#include "common/utility.h"
 #include "common/http.h"
+#include "common/utility.h"
 #include "exceptions.h"
-
 
 class Proxy {
 private:
@@ -35,7 +34,7 @@ private:
 
     std::string raw_http_response;
 
-    void SetDeviceSocket(const std::string& device_id);
+    void SetDeviceSocket(const std::string &device_id);
 
 public:
     Proxy(std::string config_path);
@@ -44,7 +43,8 @@ public:
     int AcceptClient();
     void SendDataDevice(std::string data);
     void ReceiveDataDevice();
-    ssize_t SendPacket(AAA::PacketType type, char count, std::string data);
+    ssize_t SendPacket(AAA::PacketType type, char count, char session, std::string data);
+    ssize_t SendPacket(AAA::PacketType type, char count, char session, const char error_code);
     ssize_t ReceivePacket();
     std::string GetDeviceId(std::string rawPacket);
     void SetRecvTimeout(bool flag);
