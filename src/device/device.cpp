@@ -45,6 +45,7 @@ Device::~Device() {
 
 [[noreturn]] void Device::Run() {
     while (true) {
+        // Receive packet from proxy
         ssize_t bytes_received = ReceivePacket();
 
         if (bytes_received > 0) {
@@ -52,6 +53,7 @@ Device::~Device() {
             char in_counter = AAA::GetCount(buffer);
             char curr_session_id = AAA::GetSessionId(buffer);
 
+            // Initialize or verify packet counter
             if (packet_counter == -1) {
                 packet_counter = in_counter;
             } else if (packet_counter != in_counter) {
@@ -60,10 +62,11 @@ Device::~Device() {
                 std::string data;
                 data.append(buffer + AAA_HEADER_SIZE, bytes_received - AAA_HEADER_SIZE);
                 logger->info("Sending ERROR, for packet: {}", data);
-                SendPacket(AAA::ERROR, 0, curr_session_id, AAA::Error::WRONG_COUNTER);
+                SendPacket(AAA::ERROR, 0, curr_session_id, AAA::Error::WRONG_COUNT);
                 continue;
             }
 
+            // Expect DATA
             if (type == AAA::PacketType::DATA) {
                 if (session_id == -1) {
                     session_id = curr_session_id;
@@ -74,19 +77,23 @@ Device::~Device() {
                     std::string data;
                     data.append(buffer + AAA_HEADER_SIZE, bytes_received - AAA_HEADER_SIZE);
                     logger->info("Sending ERROR, for packet: {}", data);
-                    SendPacket(AAA::ERROR, 0, session_id, AAA::Error::UNKNOWN);
+                    SendPacket(AAA::ERROR, 0, session_id, AAA::Error::WRONG_SESSION);
                     continue;
                 }
+
                 raw_http_request.append(buffer + AAA_HEADER_SIZE, bytes_received - AAA_HEADER_SIZE);
                 SendPacket(AAA::PacketType::ACK, packet_counter, session_id, "");
                 logger->info("Sent ACK{}", (int)packet_counter);
             } else {
-                //todo what should be the response for wrong packet type
+                SendPacket(AAA::PacketType::ERROR, packet_counter, session_id, AAA::Error::WRONG_TYPE);
                 logger->info("Received packet of unexpected type. Recv:{}, expected: {}", type, AAA::PacketType::DATA);
+
+                session_id = -1;
+                continue;
             }
 
+            // Last fragment received, time to respond
             if (packet_counter == 1) {
-                session_id = -1;
                 if (ParseRequest()) {
                     raw_http_request = "";
                     logger->info("Received http request: " + http_request.to_string());
@@ -100,6 +107,8 @@ Device::~Device() {
 
                     SendData(http_response.to_string());
                 }
+
+                session_id = -1;
             }
         } else {
             logger->info("Error while receiving packet");
@@ -169,9 +178,12 @@ void Device::SendData(std::string data) {
     }
 
     int retransmission_counter = 0;
+
     for (unsigned char i = 0; i < data_chunks.size();) {
+        // Send fragment of response
         SendPacket(AAA::PacketType::DATA, data_chunks.size() - i, session_id, data_chunks[i]);
 
+        // Expect ACK
         if (ReceivePacket() > 0 && AAA::GetType(buffer[0]) == AAA::PacketType::ACK) {
             char16_t count = AAA::GetCount(buffer);
             logger->info("Received ACK{}", (int)count);
@@ -183,10 +195,12 @@ void Device::SendData(std::string data) {
             break;
         } else {
             logger->error("Didn't receive ACK. Resending. Resend counter {}", retransmission_counter);
+
             if (retransmission_counter >= AAA_MAX_RETRANSMISSIONS) {
                 logger->error("Max number of retransmissions reached. Aborting... ");
                 return;
             }
+
             retransmission_counter++;
         }
     }

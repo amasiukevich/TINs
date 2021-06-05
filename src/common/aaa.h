@@ -14,10 +14,10 @@
 namespace AAA {
 namespace Error {
 
-const char WRONG_COUNTER = 1;
-const char WRONG_SESSION = 2;
-const char WRONG_TYPE = 3;
-const char UNKNOWN = 100;
+const char UNKNOWN = 0;
+const char WRONG_TYPE = 1;
+const char WRONG_COUNT = 2;
+const char WRONG_SESSION = 3;
 
 }  // namespace Error
 

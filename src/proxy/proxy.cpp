@@ -53,27 +53,39 @@ Proxy::~Proxy() {
 
 [[noreturn]] void Proxy::Run() {
     while (true) {
+        // Accept incoming client connection
         int connfd = AcceptClient();
 
         while (true) {
             char buff[4096];
             memset(buff, 0, sizeof(buff));
-            ssize_t bytes_received = recv(connfd, buff, sizeof(buff), 0);
 
+            // Get full HTTP request from client
+            ssize_t bytes_received = recv(connfd, buff, sizeof(buff), 0);
             if (bytes_received > 0) {
                 std::string s = std::string(buff);
-
                 std::string device_id = GetDeviceId(s);
+
                 if (config["devices"].HasMember(device_id.c_str())) {
+                    // Set device destination
                     SetDeviceSocket(device_id);
                     logger->info("New client request. Routing to: {}", device_id);
+
                     try {
+                        // Send HTTP request to device
                         SendDataDevice(s);
+
+                        // Receive HTTP response from device
                         ReceiveDataDevice();
+
                         logger->info("Communication successful, sending response back to client.");
                     } catch (MaxRetransmissionsReachedException &ignored) {
                         logger->error("Max retransmissions reached. Sending back default response.");
                         HTTP::Response response = HTTP::SERVICE_UNAVAILABLE;
+                        raw_http_response = response.to_string();
+                    } catch (...) {
+                        logger->error("Unknown error.");
+                        HTTP::Response response = HTTP::INTERNAL_SERVER_ERROR;
                         raw_http_response = response.to_string();
                     }
                 } else {
@@ -81,13 +93,18 @@ Proxy::~Proxy() {
                     HTTP::Response response = HTTP::BAD_GATEWAY;
                     raw_http_response = response.to_string();
                 }
+
+                // Send HTTP response
                 send(connfd, raw_http_response.c_str(), raw_http_response.size(), 0);
+
+                // Close connection
                 close(connfd);
             } else {
                 logger->info("TCP connection closed");
                 break;
             }
         }
+
         logger->flush();
     }
 }
@@ -179,6 +196,7 @@ void Proxy::ReceiveDataDevice() {
             }
         } else {
             logger->error("Session id {} -  Failed to receive data", current_session_id);
+            throw;
         }
     }
 }
