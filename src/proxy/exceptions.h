@@ -4,8 +4,8 @@
 
 #ifndef AAA_PROTOCOL_EXCEPTIONS_H
 #define AAA_PROTOCOL_EXCEPTIONS_H
-struct MaxRetransmissionsReachedException : public std::exception{
-    [[nodiscard]] const char * what() const noexcept{
+struct MaxRetransmissionsReachedException : public std::exception {
+    [[nodiscard]] const char *what() const noexcept {
         return "Max number of retransmissions reached";
     }
 };

@@ -10,7 +10,7 @@ Proxy::Proxy(std::string config_path) {
         exit(-1);
     }
 
-    for(auto &d : config["devices"].GetObject()){
+    for (auto &d : config["devices"].GetObject()) {
         std::string name = d.name.GetString();
         session_ids[name] = (char)0;
     }
@@ -64,19 +64,19 @@ Proxy::~Proxy() {
                 std::string s = std::string(buff);
 
                 std::string device_id = GetDeviceId(s);
-                if(config["devices"].HasMember(device_id.c_str())){
+                if (config["devices"].HasMember(device_id.c_str())) {
                     SetDeviceSocket(device_id);
                     logger->info("New client request. Routing to: {}", device_id);
-                    try{
+                    try {
                         SendDataDevice(s);
                         ReceiveDataDevice();
                         logger->info("Communication successful, sending response back to client.");
-                    }catch(MaxRetransmissionsReachedException &ignored){
-                           logger->error("Max retransmissions reached. Sending back default response.");
-                           HTTP::Response response = HTTP::SERVICE_UNAVAILABLE;
-                           raw_http_response = response.to_string();
+                    } catch (MaxRetransmissionsReachedException &ignored) {
+                        logger->error("Max retransmissions reached. Sending back default response.");
+                        HTTP::Response response = HTTP::SERVICE_UNAVAILABLE;
+                        raw_http_response = response.to_string();
                     }
-                }else{
+                } else {
                     logger->info("{} unknown, sending BAD::GATEWAY", device_id);
                     HTTP::Response response = HTTP::BAD_GATEWAY;
                     raw_http_response = response.to_string();
@@ -108,7 +108,7 @@ int Proxy::AcceptClient() {
 void Proxy::SendDataDevice(std::string data) {
     SetRecvTimeout(true);
 
-    auto data_chunks = chunk_data(data, device_chunk_size-2);
+    auto data_chunks = chunk_data(data, device_chunk_size - 2);
 
     if (data_chunks.size() > AAA_MAX_COUNT) {
         logger->error("Data is too long, too many fragments.");
@@ -131,7 +131,6 @@ void Proxy::SendDataDevice(std::string data) {
                     } else {
                         logger->info("Received ACK packet with wrong number. Got {}, expected{}. Resending data. Retransmission counter: {}",
                                      ack_num, data_chunks.size() - i, retry_counter);
-
                     }
                 } else {
                     //todo send back error packet
@@ -156,7 +155,7 @@ void Proxy::SendDataDevice(std::string data) {
     SetRecvTimeout(false);
 }
 
-void Proxy::ReceiveDataDevice(){
+void Proxy::ReceiveDataDevice() {
     raw_http_response = "";
 
     while (true) {
@@ -167,9 +166,9 @@ void Proxy::ReceiveDataDevice(){
             char count = AAA::GetCount(buffer);
 
             if (type == AAA::PacketType::DATA) {
-                logger->info("Session {}, DATA {} received and accepted", current_session_id, (int) count);
+                logger->info("Session {}, DATA {} received and accepted", current_session_id, (int)count);
                 raw_http_response.append(buffer + AAA_HEADER_SIZE, bytes_received - AAA_HEADER_SIZE);
-                logger->info("Session {}, sending back ACK {}", current_session_id, (int) count);
+                logger->info("Session {}, sending back ACK {}", current_session_id, (int)count);
                 SendPacket(AAA::PacketType::ACK, count, "");
             }
 
@@ -184,13 +183,13 @@ void Proxy::ReceiveDataDevice(){
 }
 
 ssize_t Proxy::SendPacket(AAA::PacketType type, char count, std::string data) {
-    char header[2]{0};
+    char header[2] {0};
     AAA::SetType(header[0], type);
     AAA::SetCount(header, count);
     AAA::SetSessionId(header, current_session_id);
 
     std::string temp = header[1] + data;
-    temp =  header[0] + temp;
+    temp = header[0] + temp;
 
     if (temp.size() > device_chunk_size) {
         logger->error("Packet too large.");
@@ -220,16 +219,16 @@ std::string Proxy::GetDeviceId(std::string raw_packet) {
 void Proxy::SetRecvTimeout(bool flag) {
     struct timeval timeout;
     timeout.tv_sec = 0;
-    timeout.tv_usec = flag? AAA_RETRANSMISSION_TIMEOUT : 0;
+    timeout.tv_usec = flag ? AAA_RETRANSMISSION_TIMEOUT : 0;
 
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 }
-void Proxy::SetDeviceSocket(const std::string& device_id) {
-    memset(&device_addr, 0, sizeof (device_addr));
+void Proxy::SetDeviceSocket(const std::string &device_id) {
+    memset(&device_addr, 0, sizeof(device_addr));
     device_addr.sin_family = AF_INET;
     device_addr.sin_port = htons(config["devices"][device_id.c_str()]["port"].GetInt());
     device_addr.sin_addr.s_addr = inet_addr(config["devices"][device_id.c_str()]["ip"].GetString());
-    device_chunk_size =config["devices"][device_id.c_str()]["max_aaa_size"].GetUint();
+    device_chunk_size = config["devices"][device_id.c_str()]["max_aaa_size"].GetUint();
     session_ids[device_id]++;
     current_session_id = session_ids[device_id];
 }

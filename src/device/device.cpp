@@ -1,11 +1,12 @@
 #include "device.h"
 
 Device::Device(std::string config_path, std::string id)
-    : id(id), session_id(-1) {
+    : id(id)
+    , session_id(-1) {
     config = load_config(config_path);
     logger = init_logger(id);
 
-    if(!config["devices"].HasMember(id.c_str())){
+    if (!config["devices"].HasMember(id.c_str())) {
         logger->error("Device {} not present in config file", id);
         exit(0);
     }
@@ -48,10 +49,10 @@ Device::~Device() {
         if (bytes_received > 0) {
             AAA::PacketType type = AAA::GetType(buffer[0]);
             char in_counter = AAA::GetCount(buffer);
-            if(packet_counter == -1){
+            if (packet_counter == -1) {
                 packet_counter = in_counter;
-            }else if(packet_counter != in_counter){
-                in_counter ++;
+            } else if (packet_counter != in_counter) {
+                in_counter++;
                 logger->error("Reviced packet with wrong counter. Recv: {}, Expected: {}", (int)in_counter, (int)packet_counter);
                 std::string data;
                 data.append(buffer + AAA_HEADER_SIZE, bytes_received - AAA_HEADER_SIZE);
@@ -61,12 +62,12 @@ Device::~Device() {
             }
             if (type == AAA::PacketType::DATA) {
                 char curr_session_id = AAA::GetSessionId(buffer);
-                if(session_id == -1){
+                if (session_id == -1) {
                     session_id = curr_session_id;
                     logger->info("New session id {} DATA {} received.", session_id, (int)packet_counter);
-                }else if(curr_session_id == session_id){
+                } else if (curr_session_id == session_id) {
                     logger->info("Session id {} DATA {} received.", session_id, (int)packet_counter);
-                }else{
+                } else {
                     std::string data;
                     data.append(buffer + AAA_HEADER_SIZE, bytes_received - AAA_HEADER_SIZE);
                     logger->info("Sending ERROR, for packet: {}", data);
@@ -75,8 +76,8 @@ Device::~Device() {
                 }
                 raw_http_request.append(buffer + AAA_HEADER_SIZE, bytes_received - AAA_HEADER_SIZE);
                 SendPacket(AAA::PacketType::ACK, packet_counter, "");
-                logger->info("Sent ACK{}", (int) packet_counter);
-            }else{
+                logger->info("Sent ACK{}", (int)packet_counter);
+            } else {
                 //todo what should be the response for wrong packet type
                 logger->info("Received packet of unexpected type. Recv:{}, expected: {}", type, AAA::PacketType::DATA);
             }
@@ -88,7 +89,7 @@ Device::~Device() {
                     logger->info("Received http request: " + http_request.to_string());
                     if (HandleRequest()) {
                         logger->info("Sending back response: " + http_response.to_string());
-                    }else{
+                    } else {
                         http_response = HTTP::NOT_IMPLEMENTED;
                         logger->info("Could not handle request. Sending back default response: " + http_response.to_string());
                     }
@@ -102,7 +103,7 @@ Device::~Device() {
 }
 
 ssize_t Device::SendPacket(AAA::PacketType type, char count, std::string data) {
-    char header[2]{0};
+    char header[2] {0};
     AAA::SetType(header[0], type);
     AAA::SetCount(header, count);
     AAA::SetSessionId(header, session_id);
@@ -169,11 +170,11 @@ void Device::SendData(std::string data) {
             retransmission_counter = 0;
         } else {
             logger->error("Didnt receive ACK. Resending. Resend counter {}", retransmission_counter);
-            if(retransmission_counter >= AAA_MAX_RETRANSMISSIONS){
+            if (retransmission_counter >= AAA_MAX_RETRANSMISSIONS) {
                 logger->error("Max number of retransmissions reached. Aborting... ");
                 return;
             }
-            retransmission_counter ++;
+            retransmission_counter++;
         }
     }
 

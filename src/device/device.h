@@ -36,7 +36,6 @@ private:
     std::string raw_http_response;
     HTTP::Response http_response;
 
-
 public:
     Device(std::string config_path, std::string id);
     ~Device();
