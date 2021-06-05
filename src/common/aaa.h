@@ -12,6 +12,14 @@
 #define AAA_HEADER_SIZE 2
 
 namespace AAA {
+namespace Error {
+
+const char WRONG_COUNTER = 1;
+const char WRONG_SESSION = 2;
+const char WRONG_TYPE = 3;
+const char UNKNOWN = 100;
+
+}  // namespace Error
 
 const char TYPE_MASK = (char)0b11000000;
 const char ACK_MASK = (char)0b01000000;

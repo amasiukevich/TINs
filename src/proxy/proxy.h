@@ -43,7 +43,8 @@ public:
     int AcceptClient();
     void SendDataDevice(std::string data);
     void ReceiveDataDevice();
-    ssize_t SendPacket(AAA::PacketType type, char count, std::string data);
+    ssize_t SendPacket(AAA::PacketType type, char count, char session, std::string data);
+    ssize_t SendPacket(AAA::PacketType type, char count, char session, const char error_code);
     ssize_t ReceivePacket();
     std::string GetDeviceId(std::string rawPacket);
     void SetRecvTimeout(bool flag);

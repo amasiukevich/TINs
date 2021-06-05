@@ -40,7 +40,8 @@ public:
     Device(std::string config_path, std::string id);
     ~Device();
     [[noreturn]] void Run();
-    ssize_t SendPacket(AAA::PacketType type, char count, std::string data);
+    ssize_t SendPacket(AAA::PacketType type, char count, char session, std::string data);
+    ssize_t SendPacket(AAA::PacketType type, char count, char session, const char error_code);
     ssize_t ReceivePacket();
     bool ParseRequest();
     bool HandleRequest();

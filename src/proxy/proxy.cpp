@@ -117,7 +117,7 @@ void Proxy::SendDataDevice(std::string data) {
 
     int retry_counter = 0;
     for (unsigned char i = 0; i < data_chunks.size();) {
-        SendPacket(AAA::PacketType::DATA, data_chunks.size() - i, data_chunks[i]);
+        SendPacket(AAA::PacketType::DATA, data_chunks.size() - i, current_session_id, data_chunks[i]);
 
         if (ReceivePacket() > 0) {
             char type = AAA::GetType(buffer[0]);
@@ -129,13 +129,11 @@ void Proxy::SendDataDevice(std::string data) {
                         logger->info("Session {}, ACK {} received and accepted", current_session_id, (int)ack_num);
                         ++i;
                     } else {
-                        logger->info("Received ACK packet with wrong number. Got {}, expected{}. Resending data. Retransmission counter: {}",
-                                     ack_num, data_chunks.size() - i, retry_counter);
+                        logger->info("Received ACK packet with wrong number. Got {}, expected{}. Resending data. Retransmission counter: {}", ack_num, data_chunks.size() - i, retry_counter);
                     }
                 } else {
-                    //todo send back error packet
-                    logger->info("Recived packet with wrong session id. Received: {}, expected: {}. Ignored and resending. Retransmission counter: {}",
-                                 (int)incoming_session_id, (int)current_session_id, retry_counter);
+                    SendPacket(AAA::PacketType::ERROR, 0, current_session_id, AAA::Error::WRONG_SESSION);
+                    logger->info("Recived packet with wrong session id. Received: {}, expected: {}. Ignored and resending. Retransmission counter: {}", (int)incoming_session_id, (int)current_session_id, retry_counter);
                     retry_counter++;
                 }
             } else {
@@ -145,13 +143,16 @@ void Proxy::SendDataDevice(std::string data) {
             }
         } else {
             logger->info("Timed out while waiting for ACK. Resending. Retransmission counter: {}", retry_counter);
+
             if (retry_counter > AAA_MAX_RETRANSMISSIONS) {
                 logger->error("Received max retransmission number. Aborting...");
                 throw MaxRetransmissionsReachedException();
             }
+
             retry_counter++;
         }
     }
+
     SetRecvTimeout(false);
 }
 
@@ -169,7 +170,7 @@ void Proxy::ReceiveDataDevice() {
                 logger->info("Session {}, DATA {} received and accepted", current_session_id, (int)count);
                 raw_http_response.append(buffer + AAA_HEADER_SIZE, bytes_received - AAA_HEADER_SIZE);
                 logger->info("Session {}, sending back ACK {}", current_session_id, (int)count);
-                SendPacket(AAA::PacketType::ACK, count, "");
+                SendPacket(AAA::PacketType::ACK, count, current_session_id, "");
             }
 
             if (count == 1) {
@@ -182,11 +183,15 @@ void Proxy::ReceiveDataDevice() {
     }
 }
 
-ssize_t Proxy::SendPacket(AAA::PacketType type, char count, std::string data) {
+ssize_t Proxy::SendPacket(AAA::PacketType type, char count, char session, const char error_code) {
+    return SendPacket(type, count, session, std::string(&error_code));
+}
+
+ssize_t Proxy::SendPacket(AAA::PacketType type, char count, char session, std::string data) {
     char header[2] {0};
     AAA::SetType(header[0], type);
     AAA::SetCount(header, count);
-    AAA::SetSessionId(header, current_session_id);
+    AAA::SetSessionId(header, session);
 
     std::string temp = header[1] + data;
     temp = header[0] + temp;
