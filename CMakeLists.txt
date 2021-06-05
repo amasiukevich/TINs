@@ -46,7 +46,7 @@ file(GLOB COMMON_FILES
 add_executable(device ${DEVICE_FILES} ${COMMON_FILES})
 target_link_libraries(device pthread ${Boost_LIBRARIES})
 
-add_executable(proxy ${PROXY_FILES} ${COMMON_FILES} )
+add_executable(proxy ${PROXY_FILES} ${COMMON_FILES} src/proxy/exceptions.h)
 target_link_libraries(proxy pthread ${Boost_LIBRARIES})
 
 add_executable(client ${CLIENT_FILES} ${COMMON_FILES} )

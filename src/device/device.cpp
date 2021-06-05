@@ -142,6 +142,7 @@ void Device::SendData(std::string data) {
         return;
     }
 
+    int retransmission_counter = 0;
     for (unsigned char i = 0; i < data_chunks.size();) {
         SendPacket(AAA::PacketType::DATA, data_chunks.size() - i, data_chunks[i]);
 
@@ -149,8 +150,10 @@ void Device::SendData(std::string data) {
             char16_t count = AAA::GetCount(buffer);
             logger->info("Received ACK{}", (int)count);
             ++i;
+            retransmission_counter = 0;
         } else {
             logger->error("Didnt receive ACK. Resending");
+            retransmission_counter ++;
         }
     }
 
@@ -159,7 +162,7 @@ void Device::SendData(std::string data) {
 
 void Device::SetRecvTimeout(bool flag) {
     struct timeval timeout;
-    timeout.tv_sec = flag ? 2 : 0;
+    timeout.tv_sec = flag ? 0.8 : 0;
     timeout.tv_usec = 0;
 
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
