@@ -13,6 +13,7 @@
 #include "common/aaa.h"
 #include "common/utility.h"
 #include "common/http.h"
+#include "exceptions.h"
 
 
 class Proxy {
@@ -34,15 +35,15 @@ private:
 
     std::string raw_http_response;
 
-    void set_device_data(std::string device_id);
+    void SetDeviceSocket(const std::string& device_id);
 
 public:
     Proxy(std::string config_path);
     ~Proxy();
     [[noreturn]] void Run();
     int AcceptClient();
-    void SendData(std::string request);
-    void ReceiveData();
+    void SendDataDevice(std::string data);
+    void ReceiveDataDevice();
     ssize_t SendPacket(AAA::PacketType type, char count, std::string data);
     ssize_t ReceivePacket();
     std::string GetDeviceId(std::string rawPacket);

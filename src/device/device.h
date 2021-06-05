@@ -21,6 +21,7 @@ private:
     std::string id;
     uint max_packet_size;
     char session_id;
+    char packet_counter = (char)-1;
 
     int sockfd;
 

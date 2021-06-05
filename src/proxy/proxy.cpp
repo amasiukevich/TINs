@@ -48,6 +48,7 @@ Proxy::Proxy(std::string config_path) {
 }
 
 Proxy::~Proxy() {
+    logger->flush();
 }
 
 [[noreturn]] void Proxy::Run() {
@@ -64,10 +65,17 @@ Proxy::~Proxy() {
 
                 std::string device_id = GetDeviceId(s);
                 if(config["devices"].HasMember(device_id.c_str())){
-                    set_device_data(device_id);
+                    SetDeviceSocket(device_id);
                     logger->info("New client request. Routing to: {}", device_id);
-                    SendData(s);
-                    ReceiveData();
+                    try{
+                        SendDataDevice(s);
+                        ReceiveDataDevice();
+                        logger->info("Communication successful, sending response back to client.");
+                    }catch(MaxRetransmissionsReachedException &ignored){
+                           logger->error("Max retransmissions reached. Sending back default response.");
+                           HTTP::Response response = HTTP::SERVICE_UNAVAILABLE;
+                           raw_http_response = response.to_string();
+                    }
                 }else{
                     logger->info("{} unknown, sending BAD::GATEWAY", device_id);
                     HTTP::Response response = HTTP::BAD_GATEWAY;
@@ -80,7 +88,7 @@ Proxy::~Proxy() {
                 break;
             }
         }
-        logger->flush();A
+        logger->flush();
     }
 }
 
@@ -97,7 +105,7 @@ int Proxy::AcceptClient() {
     return connfd;
 }
 
-void Proxy::SendData(std::string data) {
+void Proxy::SendDataDevice(std::string data) {
     SetRecvTimeout(true);
 
     auto data_chunks = chunk_data(data, device_chunk_size-2);
@@ -107,23 +115,48 @@ void Proxy::SendData(std::string data) {
         return;
     }
 
+    int retry_counter = 0;
     for (unsigned char i = 0; i < data_chunks.size();) {
         SendPacket(AAA::PacketType::DATA, data_chunks.size() - i, data_chunks[i]);
 
-        //todo reject packets with wrong ACK or session id (by sending back error)
-        if (ReceivePacket() > 0 && AAA::GetType(buffer[0]) == AAA::PacketType::ACK) {
-            char16_t count = AAA::GetCount(buffer);
-            logger->info("Session {}, ACK {} received and accepted", current_session_id, (int) count);
-            ++i;
+        if (ReceivePacket() > 0) {
+            char type = AAA::GetType(buffer[0]);
+            if (type == AAA::PacketType::ACK) {
+                char incoming_session_id = AAA::GetSessionId(buffer);
+                if (incoming_session_id == current_session_id) {
+                    unsigned int ack_num = (unsigned char)AAA::GetCount(buffer);
+                    if (ack_num == data_chunks.size() - i) {
+                        logger->info("Session {}, ACK {} received and accepted", current_session_id, (int)ack_num);
+                        ++i;
+                    } else {
+                        logger->info("Received ACK packet with wrong number. Got {}, expected{}. Resending data. Retransmission counter: {}",
+                                     ack_num, data_chunks.size() - i, retry_counter);
+
+                    }
+                } else {
+                    //todo send back error packet
+                    logger->info("Recived packet with wrong session id. Received: {}, expected: {}. Ignored and resending. Retransmission counter: {}",
+                                 (int)incoming_session_id, (int)current_session_id, retry_counter);
+                    retry_counter++;
+                }
+            } else {
+                //todo what is an appropriate reaction for wrong packet type? Does immediate resending comply with plans?
+                logger->info("Received unexpected packet type {}. Incoming packet ignored. Resending. Retransmission counter: {}", (int)type, retry_counter);
+                retry_counter++;
+            }
         } else {
-            //todo add max retries
-            logger->info("Timed out while waiting for ACK. Resending");
+            logger->info("Timed out while waiting for ACK. Resending. Retransmission counter: {}", retry_counter);
+            if (retry_counter > AAA_MAX_RETRANSMISSIONS) {
+                logger->error("Received max retransmission number. Aborting...");
+                throw MaxRetransmissionsReachedException();
+            }
+            retry_counter++;
         }
     }
     SetRecvTimeout(false);
 }
 
-void Proxy::ReceiveData() {
+void Proxy::ReceiveDataDevice(){
     raw_http_response = "";
 
     while (true) {
@@ -131,17 +164,17 @@ void Proxy::ReceiveData() {
 
         if (bytes_received > 0) {
             AAA::PacketType type = AAA::GetType(buffer[0]);
-            char16_t count = AAA::GetCount(buffer);
+            char count = AAA::GetCount(buffer);
 
             if (type == AAA::PacketType::DATA) {
                 logger->info("Session {}, DATA {} received and accepted", current_session_id, (int) count);
-                raw_http_response.append(buffer + 2, bytes_received - 2);
+                raw_http_response.append(buffer + AAA_HEADER_SIZE, bytes_received - AAA_HEADER_SIZE);
                 logger->info("Session {}, sending back ACK {}", current_session_id, (int) count);
                 SendPacket(AAA::PacketType::ACK, count, "");
             }
 
             if (count == 1) {
-                std::cout << raw_http_response << std::endl;
+                logger->info("Received full response from device: {}", raw_http_response);
                 return;
             }
         } else {
@@ -160,7 +193,7 @@ ssize_t Proxy::SendPacket(AAA::PacketType type, char count, std::string data) {
     temp =  header[0] + temp;
 
     if (temp.size() > device_chunk_size) {
-        std::cerr << "Packet too large." << std::endl;
+        logger->error("Packet too large.");
         return -1;
     }
 
@@ -173,7 +206,7 @@ ssize_t Proxy::ReceivePacket() {
 }
 
 std::string Proxy::GetDeviceId(std::string raw_packet) {
-    std::string device_id = "";
+    std::string device_id;
 
     auto pos1 = raw_packet.find('/');
     auto remain_packet = raw_packet.substr(pos1 + 1);
@@ -186,12 +219,12 @@ std::string Proxy::GetDeviceId(std::string raw_packet) {
 
 void Proxy::SetRecvTimeout(bool flag) {
     struct timeval timeout;
-    timeout.tv_sec = flag ? 2 : 0;
-    timeout.tv_usec = 0;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = flag? AAA_RETRANSMISSION_TIMEOUT : 0;
 
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 }
-void Proxy::set_device_data(std::string device_id) {
+void Proxy::SetDeviceSocket(const std::string& device_id) {
     memset(&device_addr, 0, sizeof (device_addr));
     device_addr.sin_family = AF_INET;
     device_addr.sin_port = htons(config["devices"][device_id.c_str()]["port"].GetInt());
