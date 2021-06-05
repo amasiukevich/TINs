@@ -33,7 +33,7 @@ Device::Device(std::string config_path, std::string id)
 
     connect(sockfd, (const sockaddr *)&proxy_addr, sizeof(proxy_addr));
 
-    logger->info("Created device [{}] on port {}", id, config["devices"][id.c_str()]["port"].GetInt());
+    logger->info("Created device {} on port {}", id, config["devices"][id.c_str()]["port"].GetInt());
     logger->flush();
 }
 
@@ -72,8 +72,9 @@ Device::~Device() {
             if (count == 1) {
                 if (ParseRequest()) {
                     raw_http_request = "";
-                    std::cout << http_request.to_string();
+                    logger->info("Received http request: " + http_request.to_string());
                     if (HandleRequest()) {
+                        logger->info("Sending back response: " + http_response.to_string());
                         SendData(http_response.to_string());
                     }
                 }

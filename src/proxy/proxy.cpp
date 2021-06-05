@@ -192,7 +192,7 @@ ssize_t Proxy::SendPacket(AAA::PacketType type, char count, std::string data) {
     temp =  header[0] + temp;
 
     if (temp.size() > device_chunk_size) {
-        std::cerr << "Packet too large." << std::endl;
+        logger->error("Packet too large.");
         return -1;
     }
 
