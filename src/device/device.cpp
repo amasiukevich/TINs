@@ -82,6 +82,7 @@ Device::~Device() {
             }
 
             if (packet_counter == 1) {
+                session_id = -1;
                 if (ParseRequest()) {
                     raw_http_request = "";
                     logger->info("Received http request: " + http_request.to_string());
@@ -93,7 +94,6 @@ Device::~Device() {
                     }
                     SendData(http_response.to_string());
                 }
-                session_id = -1;
             }
         } else {
             logger->info("Error while receiving packet");
