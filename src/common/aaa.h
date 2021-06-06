@@ -27,7 +27,7 @@ const char DATA_MASK = (char)0b10000000;
 const char ERROR_MASK = (char)0b11000000;
 const char SESSION_MASK = (char)0b01111111;
 
-enum PacketType {
+enum PacketType{
     UNKNOWN,  // 00
     ACK,      // 01
     DATA,     // 10

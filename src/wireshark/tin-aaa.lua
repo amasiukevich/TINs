@@ -11,8 +11,10 @@ local counter_mask = 0x3F80;
 local session_mask = 0x007F;
 
 -- definitions of error codes
-local e_bad_source = 1
-local e_connection_broken = 2
+local e_unknown = 0;
+local e_wrong_type = 1;
+local e_wrong_count = 2;
+local e_wrong_session = 3;
 
 aaa_protocol = Proto("AAA", "AAA Protocol")
 
@@ -51,8 +53,9 @@ local function get_error_codes(num)
     num = bitwise_and(num, counter_mask)
     num = math.floor(num/2^7)
     local err_code = "E_UNKNOWN"
-    if num == e_bad_source then err_code= "E_SOURCE"
-    elseif num == e_connection_broken then err_code = "E_CONNECTION"
+    if num == e_wrong_type then err_code= "E_WRONG_PACKET_TYPE"
+    elseif num == e_wrong_session then err_code = "E_WRONG_SESSION"
+    elseif num == e_wrong_count then err_code = "E_WRONG_COUNT"
     end
     return err_code
 end
@@ -68,12 +71,13 @@ function aaa_protocol.dissector(buffer, pinfo, tree)
     subtree:add(packet_type, buffer(0,1)):append_text(" [" .. typename .. "] ")
 
     local counter = buffer(0,1):bytes():get_index(0)
+    subtree:add(session_id, buffer(0,2)):append_text("[session_id]")
     if(typename == "ERROR") then
         local error_code = get_error_codes(counter)
         subtree:add(number, buffer(0,2)):append_text(" [" .. error_code .. "]" )
     else
         subtree:add(number, buffer(0,2)):append_text(" [nr] ")
-        subtree:add(session_id, buffer(0,2)):append_text("[session_id]")
+
     end
     if (typename ~= "ACK" and length > 2) then
         subtree:add(buffer(2, length-2), buffer(2, length-2):string()):append_text(" [payload] ")

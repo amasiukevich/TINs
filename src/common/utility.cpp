@@ -11,7 +11,7 @@ std::vector<std::string> chunk_data(std::string &data, size_t chunk_size) {
 }
 
 // Source: https://stackoverflow.com/a/2602060
-rapidjson::Document load_config(std::string filepath) {
+rapidjson::Document load_config(const std::string& filepath) {
     rapidjson::Document doc;
 
     std::ifstream file(filepath);
