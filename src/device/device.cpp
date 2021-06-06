@@ -1,8 +1,7 @@
 #include "device.h"
 
 Device::Device(std::string config_path, std::string id)
-    : id(id)
-    , session_id(-1) {
+    : id(id), session_id(-1) {
     config = load_config(config_path);
     logger = init_logger(id);
     logger->flush_on(spdlog::level::info);
