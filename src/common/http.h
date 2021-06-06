@@ -27,6 +27,7 @@ struct Response {
 
 // Source: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
 const Response OK = {"1.1", "200", "OK", {}, ""};
+const Response CREATED = {"1.1", "201", "Created", {}, ""};
 
 const Response BAD_REQUEST = {"1.1", "400", "Bad Request", {}, ""};
 const Response UNAUTHORIZED = {"1.1", "401", "Unauthorized", {}, ""};

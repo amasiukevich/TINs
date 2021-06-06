@@ -5,6 +5,7 @@ project(aaa-protocol)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -Wall -Wextra -pedantic")
 
 add_custom_target(copy_config ALL COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/config" "${CMAKE_BINARY_DIR}/config")
+add_custom_target(copy_device_files ALL COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/device_files" "${CMAKE_BINARY_DIR}/device_files")
 
 # Libraries
 ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)

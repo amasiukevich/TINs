@@ -1,7 +1,8 @@
 #include "device.h"
 
 Device::Device(std::string config_path, std::string id)
-    : id(id), session_id(-1) {
+    : id(id)
+    , session_id(-1) {
     config = load_config(config_path);
     logger = init_logger(id);
     logger->flush_on(spdlog::level::info);
@@ -146,22 +147,127 @@ bool Device::ParseRequest() {
 }
 
 bool Device::HandleRequest() {
-    auto path_items = split_string(http_request.path, "/");
+    std::vector<std::string> path_items;
 
-    if (path_items.size() >= 2 && path_items[1] != id) {
-        http_response = HTTP::BAD_REQUEST;
+    for (auto a : split_string(http_request.path, "/")) {
+        if (a.size() > 0) {
+            path_items.push_back(a);
+        }
+    }
+
+    if (path_items.size() > 0 && path_items[0] != id) {
+        http_response = HTTP::BAD_GATEWAY;
         http_response.body = "Wrong device.";
         return true;
     }
 
-    if (path_items.size() >= 3 && path_items[2] == "info") {
-        http_response = HTTP::OK;
-        http_response.header.emplace(std::make_pair("Content-Type", "application/json"));
-        http_response.body = json_to_string(config["devices"][id.c_str()]);
-        return true;
+    if (http_request.method == "GET" || http_request.method == "POST") {
+        if (path_items.size() == 2 && path_items[1] == "info") {
+            http_response = HTTP::OK;
+            http_response.header.emplace(std::make_pair("Content-Type", "application/json"));
+            http_response.body = json_to_string(config["devices"][id.c_str()]);
+            return true;
+        }
+
+        if (path_items.size() == 2 && path_items[1] == "file") {
+            try {
+                http_response = HTTP::OK;
+
+                for (auto entry : std::filesystem::directory_iterator("device_files/" + id)) {
+                    http_response.header.emplace(std::make_pair("Content-Type", "text/plain; charset=UTF-8"));
+                    http_response.body += entry.path().string() + "\r\n";
+                }
+
+                return true;
+            } catch (...) {
+                http_response = HTTP::BAD_REQUEST;
+                return true;
+            }
+        }
+
+        if (path_items.size() == 3 && path_items[1] == "file") {
+            if (is_valid_filename(path_items[2])) {
+                try {
+                    http_response = HTTP::OK;
+                    std::string filepath = "device_files/" + id + "/" + path_items[2];
+                    http_response.body = file_to_string(filepath);
+                    logger->info("Read file: {}", filepath);
+                    return true;
+                } catch (...) {
+                    http_response = HTTP::BAD_REQUEST;
+                    return true;
+                }
+            } else {
+                http_response = HTTP::BAD_REQUEST;
+                http_response.body = "Bad file name.";
+                return true;
+            }
+        }
+    } else if (http_request.method == "PUT") {
+        if (path_items.size() == 3 && path_items[1] == "file") {
+            if (is_valid_filename(path_items[2])) {
+                std::string filepath = "device_files/" + id + "/" + path_items[2];
+
+                try {
+                    if (std::filesystem::exists(filepath)) {
+                        http_response = HTTP::BAD_REQUEST;
+                        http_response.body = "File already exists.";
+                        logger->info("File already exists: {}", filepath);
+                        return true;
+                    }
+
+                    auto it = http_request.header.find("X-Data");
+
+                    std::ofstream out(filepath);
+
+                    if (it == http_request.header.end()) {
+                        out << "";
+                    } else {
+                        out << it->second;
+                    }
+
+                    out.close();
+
+                    http_response = HTTP::OK;
+                    logger->info("Created file: {}", filepath);
+                    return true;
+                } catch (...) {
+                    http_response = HTTP::BAD_REQUEST;
+                    return true;
+                }
+            } else {
+                http_response = HTTP::BAD_REQUEST;
+                http_response.body = "Bad file name.";
+                return true;
+            }
+        }
+    } else if (http_request.method == "DELETE") {
+        if (path_items.size() == 3 && path_items[1] == "file") {
+            if (is_valid_filename(path_items[2])) {
+                try {
+                    std::string filepath = "device_files/" + id + "/" + path_items[2];
+
+                    if (!std::filesystem::exists(filepath)) {
+                        http_response = HTTP::NOT_FOUND;
+                        return true;
+                    }
+
+                    http_response = HTTP::OK;
+                    std::filesystem::remove(filepath);
+                    logger->info("Deleted file: {}", filepath);
+                    return true;
+                } catch (...) {
+                    http_response = HTTP::BAD_REQUEST;
+                    return true;
+                }
+            } else {
+                http_response = HTTP::BAD_REQUEST;
+                http_response.body = "Bad file name.";
+                return true;
+            }
+        }
     }
 
-    http_response = HTTP::BAD_REQUEST;
     return false;
 }
 
