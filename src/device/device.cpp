@@ -56,12 +56,14 @@ Device::~Device() {
             if (packet_counter == -1) {
                 packet_counter = in_counter;
             } else if (packet_counter != in_counter) {
-                in_counter++;
                 logger->error("Reviced packet with wrong counter. Recv: {}, Expected: {}", (int)in_counter, (int)packet_counter);
                 std::string data;
                 data.append(buffer + AAA_HEADER_SIZE, bytes_received - AAA_HEADER_SIZE);
                 logger->info("Sending ERROR, for packet: {}", data);
                 SendPacket(AAA::ERROR, 0, curr_session_id, AAA::Error::WRONG_COUNT);
+
+                session_id = -1;
+                packet_counter = -1;
                 continue;
             }
 
@@ -69,14 +71,17 @@ Device::~Device() {
             if (type == AAA::PacketType::DATA) {
                 if (session_id == -1) {
                     session_id = curr_session_id;
-                    logger->info("New session id {} DATA {} received.", session_id, (int)packet_counter);
+                    logger->info("New session id {} DATA {} received.", (int)session_id, (int)packet_counter);
                 } else if (curr_session_id == session_id) {
-                    logger->info("Session id {} DATA {} received.", session_id, (int)packet_counter);
+                    logger->info("Session id {} DATA {} received.", (int)session_id, (int)packet_counter);
                 } else {
                     std::string data;
                     data.append(buffer + AAA_HEADER_SIZE, bytes_received - AAA_HEADER_SIZE);
                     logger->info("Sending ERROR, for packet: {}", data);
                     SendPacket(AAA::ERROR, 0, session_id, AAA::Error::WRONG_SESSION);
+
+                    session_id = -1;
+                    packet_counter = -1;
                     continue;
                 }
 
@@ -88,6 +93,7 @@ Device::~Device() {
                 logger->info("Received packet of unexpected type. Recv:{}, expected: {}", type, AAA::PacketType::DATA);
 
                 session_id = -1;
+                packet_counter = -1;
                 continue;
             }
 
@@ -108,6 +114,9 @@ Device::~Device() {
                 }
 
                 session_id = -1;
+                packet_counter = -1;
+            } else {
+                --packet_counter;
             }
         } else {
             logger->info("Error while receiving packet");

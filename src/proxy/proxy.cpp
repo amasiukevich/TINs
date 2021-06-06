@@ -59,7 +59,7 @@ Proxy::~Proxy() {
         struct timeval timeout;
         timeout.tv_sec = AAA_CLIENT_MAX_INACTIVE_TIME;
         timeout.tv_usec = 0;
-        if(setsockopt(connfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1){
+        if (setsockopt(connfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
             logger->info("Could not set timeout on incomming connection socket");
             exit(0);
         };
@@ -105,10 +105,10 @@ Proxy::~Proxy() {
                 send(connfd, raw_http_response.c_str(), raw_http_response.size(), 0);
             } else {
                 close(connfd);
-                if(errno == EAGAIN || errno == EWOULDBLOCK){
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     logger->info("Client inactive. Aborting TCP connection");
 
-                }else{
+                } else {
                     logger->info("TCP connection closed by client");
                 }
                 break;
@@ -165,7 +165,7 @@ void Proxy::SendDataDevice(std::string data) {
             } else {
                 SendPacket(AAA::PacketType::ERROR, 0, current_session_id, AAA::Error::WRONG_TYPE);
                 logger->info("Received unexpected packet type {}. Incoming packet ignored.", (int)type);
-                throw;
+                throw std::runtime_error("Unexpected packet type.");
             }
         } else {
             logger->info("Timed out while waiting for ACK. Resending. Retransmission counter: {}", retry_counter);
@@ -196,7 +196,7 @@ void Proxy::ReceiveDataDevice() {
             if (incoming_session_id != current_session_id) {
                 SendPacket(AAA::PacketType::ERROR, 0, current_session_id, AAA::Error::WRONG_SESSION);
                 logger->info("Recived packet with wrong session id. Received: {}, expected: {}. Ignored and resending.", (int)incoming_session_id, (int)current_session_id);
-                throw;
+                throw std::runtime_error("Wrong session id.");
             }
 
             if (type == AAA::PacketType::DATA) {
@@ -212,7 +212,7 @@ void Proxy::ReceiveDataDevice() {
             }
         } else {
             logger->error("Session id {} -  Failed to receive data", current_session_id);
-            throw;
+            throw std::runtime_error("Failed to receive data.");
         }
     }
 }
