@@ -32,10 +32,6 @@ file(GLOB PROXY_FILES
     src/proxy/*.cpp
 )
 
-file(GLOB CLIENT_FILES
-    src/client/*.cpp
-)
-
 file(GLOB COMMON_FILES
     src/common/*.cpp
     src/common/*.h
@@ -48,9 +44,6 @@ target_link_libraries(device pthread ${Boost_LIBRARIES})
 
 add_executable(proxy ${PROXY_FILES} ${COMMON_FILES} src/proxy/exceptions.h)
 target_link_libraries(proxy pthread ${Boost_LIBRARIES})
-
-add_executable(client ${CLIENT_FILES} ${COMMON_FILES} )
-target_link_libraries(client pthread ${Boost_LIBRARIES})
 
 # Tests 
 

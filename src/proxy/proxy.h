@@ -47,5 +47,5 @@ public:
     ssize_t SendPacket(AAA::PacketType type, char count, char session, const char error_code);
     ssize_t ReceivePacket();
     std::string GetDeviceId(std::string rawPacket);
-    void SetRecvTimeout(bool flag);
+    void SetRecvTimeoutForDevices(bool flag);
 };

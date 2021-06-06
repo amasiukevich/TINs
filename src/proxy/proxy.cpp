@@ -55,6 +55,15 @@ Proxy::~Proxy() {
         // Accept incoming client connection
         int connfd = AcceptClient();
 
+        //Set timeout for client socket
+        struct timeval timeout;
+        timeout.tv_sec = AAA_CLIENT_MAX_INACTIVE_TIME;
+        timeout.tv_usec = 0;
+        if(setsockopt(connfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1){
+            logger->info("Could not set timeout on incomming connection socket");
+            exit(0);
+        };
+
         while (true) {
             char buff[4096];
             memset(buff, 0, sizeof(buff));
@@ -94,11 +103,14 @@ Proxy::~Proxy() {
 
                 // Send HTTP response
                 send(connfd, raw_http_response.c_str(), raw_http_response.size(), 0);
-
-                // Close connection
-                close(connfd);
             } else {
-                logger->info("TCP connection closed");
+                close(connfd);
+                if(errno == EAGAIN || errno == EWOULDBLOCK){
+                    logger->info("Client inactive. Aborting TCP connection");
+
+                }else{
+                    logger->info("TCP connection closed by client");
+                }
                 break;
             }
         }
@@ -119,7 +131,7 @@ int Proxy::AcceptClient() {
 }
 
 void Proxy::SendDataDevice(std::string data) {
-    SetRecvTimeout(true);
+    SetRecvTimeoutForDevices(true);
 
     auto data_chunks = chunk_data(data, device_chunk_size - 2);
 
@@ -167,7 +179,7 @@ void Proxy::SendDataDevice(std::string data) {
         }
     }
 
-    SetRecvTimeout(false);
+    SetRecvTimeoutForDevices(false);
 }
 
 void Proxy::ReceiveDataDevice() {
@@ -243,13 +255,14 @@ std::string Proxy::GetDeviceId(std::string raw_packet) {
     return device_id;
 }
 
-void Proxy::SetRecvTimeout(bool flag) {
+void Proxy::SetRecvTimeoutForDevices(bool flag) {
     struct timeval timeout;
     timeout.tv_sec = 0;
     timeout.tv_usec = flag ? AAA_RETRANSMISSION_TIMEOUT : 0;
 
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 }
+
 void Proxy::SetDeviceSocket(const std::string &device_id) {
     memset(&device_addr, 0, sizeof(device_addr));
     device_addr.sin_family = AF_INET;
