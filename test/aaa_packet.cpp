@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "../src/common/aaa.h"
+#include "../src/common/utility.h"
 
 int main(int argc, char *argv[]) {
     testing::InitGoogleTest(&argc, argv);
@@ -61,3 +62,41 @@ TEST(AAA_Packet, test_set_type){
     AAA::SetType(header, AAA::DATA);
     ASSERT_EQ(AAA::DATA_MASK, header & AAA::TYPE_MASK);
 }
+
+TEST(UTIL, test_chunk_data){
+    std::string data = "12345678901234567890";
+    size_t chunk_size = 5;
+    std::vector<std::string> chunked = chunk_data(data, chunk_size);
+    std::string reconcat;
+    for(auto & chunk : chunked){
+        ASSERT_LE(chunk.size(), chunk_size);
+        reconcat += chunk;
+    }
+    ASSERT_EQ(data, reconcat);
+}
+
+TEST(UTIL, test_split_string){
+    std::string str1 = "/api/device0/info";
+    std::vector<std::string > items1{"", "api", "device0", "info"};
+    std::vector<std::string> result1 = split_string(str1, "/");
+
+    ASSERT_EQ(items1.size(), result1.size());
+    for(auto& it : result1){
+        ASSERT_EQ(std::count(items1.begin(), items1.end(),it), 1);
+    }
+
+
+    std::string str2 = "/api";
+    std::vector<std::string > items2{"", "api"};
+    std::vector<std::string> result2 = split_string(str2, "/");
+
+    ASSERT_EQ(items2.size(), result2.size());
+    for(auto& it : result2){
+        ASSERT_EQ(std::count(items2.begin(), items2.end(),it), 1);
+    }
+
+    std::string str3 = "aaaaaaaaa";
+    std::vector<std::string> result3 = split_string(str3, "/");
+    ASSERT_EQ(result3.size(), 1);
+    ASSERT_EQ(result3[0], str3);
+}Add
