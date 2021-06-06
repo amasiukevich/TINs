@@ -172,9 +172,9 @@ bool Device::HandleRequest() {
         if (path_items.size() == 2 && path_items[1] == "file") {
             try {
                 http_response = HTTP::OK;
+                http_response.header.emplace(std::make_pair("Content-Type", "text/plain; charset=UTF-8"));
 
                 for (auto entry : std::filesystem::directory_iterator("device_files/" + id)) {
-                    http_response.header.emplace(std::make_pair("Content-Type", "text/plain; charset=UTF-8"));
                     http_response.body += entry.path().string() + "\r\n";
                 }
 
