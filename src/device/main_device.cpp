@@ -8,6 +8,4 @@ int main(int argc, char **argv) {
     }
 
     Device(std::string(argv[1]), std::string(argv[2])).Run();
-
-    return 0;
 }
