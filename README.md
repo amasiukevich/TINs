@@ -19,7 +19,11 @@ ctest --output-on-failure
 ./proxy config/global.json
 ```
 ```
-curl -X GET 127.0.0.1:4000/device0/info -H "X-Test: asdf" --verbose
+curl -X GET 127.0.0.1:4000/device0/info --verbose
+curl -X GET 127.0.0.1:4000/device0/file --verbose
+curl -X GET 127.0.0.1:4000/device0/file/test1.txt --verbose
+curl -X DELETE 127.0.0.1:4000/device0/file/test1.txt --verbose
+curl -X PUT 127.0.0.1:4000/device0/file/newfile.txt -H "X-Data: This is a new file." --verbose
 ```
 
 ## Building and using Wireshark plugin

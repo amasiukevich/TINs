@@ -3,6 +3,7 @@
 #include <spdlog/logger.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
+#include <cctype>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -29,3 +30,7 @@ std::string json_to_string(T &o) {
     o.Accept(writer);
     return sb.GetString();
 }
+
+bool is_valid_filename(std::string filename);
+
+std::string file_to_string(std::string filename);

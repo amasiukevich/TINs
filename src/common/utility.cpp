@@ -11,7 +11,7 @@ std::vector<std::string> chunk_data(std::string &data, size_t chunk_size) {
 }
 
 // Source: https://stackoverflow.com/a/2602060
-rapidjson::Document load_config(const std::string& filepath) {
+rapidjson::Document load_config(const std::string &filepath) {
     rapidjson::Document doc;
 
     std::ifstream file(filepath);
@@ -62,4 +62,35 @@ std::shared_ptr<spdlog::logger> init_logger(std::string deviceName) {
         exit(0);
     }
     return logger;
+}
+
+bool is_valid_filename(std::string filename) {
+    if (filename.size() < 1 || filename.size() > 200) {
+        return false;
+    }
+
+    if (!isalnum(filename[0])) {
+        return false;
+    }
+
+    for (auto c : filename) {
+        if (!isalnum(c) && c != '.' && c != '_') {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+std::string file_to_string(std::string filename) {
+    std::ifstream file(filename);
+    std::string s;
+
+    file.seekg(0, std::ios::end);
+    s.reserve(file.tellg());
+    file.seekg(0, std::ios::beg);
+
+    s.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+
+    return s;
 }
