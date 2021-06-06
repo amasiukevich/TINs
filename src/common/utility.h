@@ -16,7 +16,7 @@
 
 std::vector<std::string> chunk_data(std::string &data, size_t chunk_size);
 
-rapidjson::Document load_config(const std::string& filepath);
+rapidjson::Document load_config(const std::string &filepath);
 
 std::vector<std::string> split_string(std::string s, std::string delimiter);
 

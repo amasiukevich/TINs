@@ -99,4 +99,4 @@ TEST(UTIL, test_split_string){
     std::vector<std::string> result3 = split_string(str3, "/");
     ASSERT_EQ(result3.size(), 1);
     ASSERT_EQ(result3[0], str3);
-}Add
+}

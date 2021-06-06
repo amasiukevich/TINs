@@ -56,6 +56,6 @@ target_link_libraries(client pthread ${Boost_LIBRARIES})
 
 enable_testing()
 
-add_executable(test1 test/aaa_packet.cpp ${COMMON_FILES})
+add_executable(test1 test/test.cpp ${COMMON_FILES})
 target_link_libraries(test1 pthread ${Boost_LIBRARIES} gtest)
 add_test(test1 test1)
