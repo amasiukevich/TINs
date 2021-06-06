@@ -1,10 +1,6 @@
 #include "gtest/gtest.h"
 #include "../src/common/aaa.h"
 
-TEST(ModuleName, TestName) {
-    ASSERT_EQ(1, 1);
-}
-
 int main(int argc, char *argv[]) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
@@ -36,4 +32,32 @@ TEST(AAA_Packet, test_set_sessionId){
     char header[2]{0};
     AAA::SetSessionId(header, (char) 123);
     ASSERT_EQ(header[1], (char)123);
+}
+
+TEST(AAA_Packet, test_get_type){
+   char header = (char) 0b00101010;
+    ASSERT_EQ(AAA::GetType(header), AAA::UNKNOWN);
+
+    header = (char) 0b01010101;
+    ASSERT_EQ(AAA::GetType(header), AAA::ACK);
+
+    header = (char) 0b10010101;
+    ASSERT_EQ(AAA::GetType(header), AAA::DATA);
+
+    header = (char) 0b11010101;
+    ASSERT_EQ(AAA::GetType(header), AAA::ERROR);
+}
+
+TEST(AAA_Packet, test_set_type){
+    char header = (char) 0b11111111;
+    AAA::SetType(header, AAA::ACK);
+    ASSERT_EQ(AAA::ACK_MASK, header & AAA::TYPE_MASK);
+
+    header = (char) 0b11111111;
+    AAA::SetType(header, AAA::ERROR);
+    ASSERT_EQ(AAA::ERROR_MASK, header & AAA::TYPE_MASK);
+
+    header = (char) 0b11111111;
+    AAA::SetType(header, AAA::DATA);
+    ASSERT_EQ(AAA::DATA_MASK, header & AAA::TYPE_MASK);
 }
