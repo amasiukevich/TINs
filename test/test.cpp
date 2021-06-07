@@ -1,3 +1,8 @@
+//  Created on 30.05.2021
+//
+//  authors: Adrian Brodzik, Joanna Sokołowska
+//
+
 #include "gtest/gtest.h"
 #include "../src/common/aaa.h"
 #include "../src/common/utility.h"

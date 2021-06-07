@@ -1,3 +1,8 @@
+//  Created on 19.05.2021
+//
+//  authors: Adrian Brodzik, Joanna Sokołowska
+//
+
 #pragma once
 
 #include <cstring>

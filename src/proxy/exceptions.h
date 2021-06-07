@@ -1,6 +1,6 @@
+// Created  on 05.06.2021.
 //
-// Created by asia on 05.06.2021.
-//
+// author: Joanna Sokołowska
 
 #ifndef AAA_PROTOCOL_EXCEPTIONS_H
 #define AAA_PROTOCOL_EXCEPTIONS_H
