@@ -2,13 +2,12 @@ cmake_minimum_required(VERSION 3.0)
 
 project(aaa-protocol)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -Wall -Wextra -pedantic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++2a -Wall -Wextra -pedantic")
 
 add_custom_target(copy_config ALL COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/config" "${CMAKE_BINARY_DIR}/config")
-add_custom_target(copy_device_files ALL COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/device_files" "${CMAKE_BINARY_DIR}/device_files")
 
 # Libraries
-ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)
+
 find_package(Boost 1.71.0 COMPONENTS system thread REQUIRED)
 add_subdirectory(lib/googletest)
 
@@ -20,7 +19,6 @@ include_directories(
     ${Boost_INCLUDE_DIRS}
     lib/rapidjson/include
     lib/googletest/googletest/include
-    lib/spdlog/include
 )
 
 # Source files
