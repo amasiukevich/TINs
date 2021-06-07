@@ -2,13 +2,15 @@ cmake_minimum_required(VERSION 3.0)
 
 project(aaa-protocol)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -Wall -Wextra -pedantic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++2a -Wall -Wextra -pedantic")
+
 
 add_custom_target(copy_config ALL COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/config" "${CMAKE_BINARY_DIR}/config")
-add_custom_target(copy_device_files ALL COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/device_files" "${CMAKE_BINARY_DIR}/device_files")
+add_custom_target(copy_test_files ALL COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/test/acceptance_scenarios" "${CMAKE_BINARY_DIR}//test/acceptance_scenarios")
+
 
 # Libraries
-ADD_DEFINITIONS(-DBOOST_LOG_DYN_LINK)
+
 find_package(Boost 1.71.0 COMPONENTS system thread REQUIRED)
 add_subdirectory(lib/googletest)
 
@@ -38,6 +40,16 @@ file(GLOB COMMON_FILES
     src/common/*.h
 )
 
+file(GLOB PROXY_MOCK_FILES
+        src/proxy-mock/*.cpp
+        src/proxy-mock/*.h
+        )
+
+file(GLOB DEVICE_MOCK_FILES
+        src/device-mock/*.cpp
+        src/device-mock/*.h
+        )
+
 # Programs
 
 add_executable(device ${DEVICE_FILES} ${COMMON_FILES})
@@ -45,6 +57,13 @@ target_link_libraries(device pthread ${Boost_LIBRARIES})
 
 add_executable(proxy ${PROXY_FILES} ${COMMON_FILES} src/proxy/exceptions.h)
 target_link_libraries(proxy pthread ${Boost_LIBRARIES})
+
+# Testing programs
+add_executable(proxy-mock ${PROXY_MOCK_FILES} ${COMMON_FILES})
+target_link_libraries(proxy-mock pthread ${Boost_LIBRARIES})
+
+add_executable(device-mock ${DEVICE_MOCK_FILES} ${COMMON_FILES})
+target_link_libraries(device-mock pthread ${Boost_LIBRARIES})
 
 # Tests 
 
