@@ -1,7 +1,7 @@
 #include "ProxyMock.h"
 
 ProxyMock::ProxyMock(char const * fileName) {
-    std::ifstream file(filename);
+    std::ifstream file(fileName);
     std::string line;
 
     std::vector<std::string> command;
@@ -30,7 +30,7 @@ ProxyMock::ProxyMock(char const * fileName) {
 
     memset(&device_addr, 0, sizeof(device_addr));
     device_addr.sin_family = AF_INET;
-    device_addr.sin_port = htons(config["devices"]["device0"]["port"].GetInt())
+    device_addr.sin_port = htons(config["devices"]["device0"]["port"].GetInt());
     device_addr.sin_addr.s_addr = inet_addr(config["devices"]["device0"]["ip"].GetString());
 }
 

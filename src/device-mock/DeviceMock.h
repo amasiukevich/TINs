@@ -28,10 +28,7 @@ private:
 
     std::vector<std::vector<std::string>> commands;
 
-    std::string id;
-    uint max_packet_size;
-    char session_id;
-    char packet_counter = (char) -1;
+    std::string id = "1";
 
     int sockfd{};
     sockaddr_in device_addr;
@@ -39,7 +36,7 @@ private:
 
     char buffer[AAA_MAX_PACKET_SIZE];
 
-    ssize_t SendPacket(AAA::PacketType type, char count, std::string data);
+    ssize_t SendPacket(AAA::PacketType type, char count, char session_id, std::string data);
     ssize_t ReceivePacket();
 
     std::string getTypeAsStr(char);

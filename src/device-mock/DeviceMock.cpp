@@ -6,6 +6,7 @@
 DeviceMock::DeviceMock(char const * filename) {
     std::ifstream file(filename);
     std::string line;
+    std::string  device_name = "device1";
 
     std::vector<std::string> command;
 
@@ -14,31 +15,31 @@ DeviceMock::DeviceMock(char const * filename) {
     }
 
     config = load_config("config/global.json");
-    logger = init_logger("device" + id + "-mock");
+    logger = init_logger(device_name + "-mock");
 
     logger->flush_on(spdlog::level::info);
 
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-        logger->error("Error creating sockets");
+        logger->error("Could not create socket");
         exit(-1);
     }
 
     // device address
     memset(&device_addr, 0, sizeof(device_addr));
     device_addr.sin_family = AF_INET;
-    device_addr.sin_port = htons(config["devices"]["device" + id]["port"].GetInt());
-    device_addr.sin_addr.s_addr = inet_addr(config["devices"]["device" + id]["ip"].GetString());
+    device_addr.sin_port = htons(config["devices"][device_name.c_str()]["port"].GetInt());
+    device_addr.sin_addr.s_addr = inet_addr(config["devices"][device_name.c_str()]["ip"].GetString());
 
-    if (bind(sockfd, (const sockaddr *) &proxy_addr, sizeof(proxy_addr)) == -1) {
-        logger->error("Cannot bind proxy address");
+    if (bind(sockfd, (const sockaddr *)&device_addr, sizeof(device_addr)) == -1) {
+        std::cerr<<strerror(errno);
+        logger->error("Could not bind socket to device port");
         exit(-1);
     }
 
-    // proxy address
     memset(&proxy_addr, 0, sizeof(proxy_addr));
     proxy_addr.sin_family = AF_INET;
     proxy_addr.sin_port = htons(config["proxy"]["port_for_devices"].GetInt());
-    proxy_addr.sin_port = htons(config["proxy"]["ip_for_devices"].GetString());
+    proxy_addr.sin_addr.s_addr = inet_addr(config["proxy"]["ip_for_devices"].GetString());
 }
 
 
@@ -47,12 +48,12 @@ ssize_t DeviceMock::SendPacket(AAA::PacketType type, char count, char session_id
 
     AAA::SetType(header[0], type);
     AAA::SetCount(header, count);
-    AAA::SetSessionId(header, session);
+    AAA::SetSessionId(header, session_id);
 
     std::string temp = header[1] + data;
     temp = header[0] + temp;
 
-    return sendto(sockfd, temp.c_str(), temp_size, 0, (const sockaddr *) & device_addr, sizeof(device_addr));
+    return sendto(sockfd, temp.c_str(), temp.size(), 0, (const sockaddr *) & proxy_addr, sizeof(proxy_addr));
 }
 
 ssize_t DeviceMock::ReceivePacket() {
@@ -62,7 +63,7 @@ ssize_t DeviceMock::ReceivePacket() {
          getTypeAsStr(buffer[0]),
          (int) AAA::GetCount(buffer),
          (int) AAA::GetSessionId(buffer)
-    )
+    );
     return received;
 }
 
@@ -77,23 +78,23 @@ void DeviceMock::Run() {
         } else if (command.size() == 3) {
 
             AAA::PacketType type;
-            if (cmd[0] == "ERROR") {
+            if (command[0] == "ERROR") {
                 type = AAA::PacketType::ERROR;
-            } else if (cmd[0] == "ACK") {
+            } else if (command[0] == "ACK") {
                 type = AAA::PacketType::ACK;
-            } else if (cmd[0] == "DATA") {
+            } else if (command[0] == "DATA") {
                 type = AAA::PacketType::DATA;
             } else {
                 close(sockfd);
                 throw std::runtime_error("Wrong packet type in instructions");
             }
 
-            char session_id = (char) std::stoi(cmd[1]);
-            char counter = (char) std::stoi(cmd[2]);
+            char session_id = (char) std::stoi(command[1]);
+            char counter = (char) std::stoi(command[2]);
 
-            logger->info("Sending packet {} with count and session id {}", cmd[0], (int) counter, (int) session_id);
-            SendPacket(type, counter, session_id, "test");
             ReceivePacket();
+            logger->info("Sending packet {} with count and session id {}", command[0], (int) counter, (int) session_id);
+            SendPacket(type, counter, session_id, "test");
         } else {
             close(sockfd);
             logger->flush();
