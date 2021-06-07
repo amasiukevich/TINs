@@ -14,8 +14,7 @@ DeviceMock::DeviceMock(char const * filename) {
     }
 
     config = load_config("config/global.json");
-    // TODO: get the id of the device here
-    logger = init_logger("device-mock");
+    logger = init_logger("device" + id + "-mock");
 
     logger->flush_on(spdlog::level::info);
 
@@ -27,9 +26,8 @@ DeviceMock::DeviceMock(char const * filename) {
     // device address
     memset(&device_addr, 0, sizeof(device_addr));
     device_addr.sin_family = AF_INET;
-    // TODO: get the id of the device
-    device_addr.sin_port = htons(config["devices"]["device0"]["port"].GetInt());
-    device_addr.sin_addr.s_addr = inet_addr(config["devices"]["device0"]["ip"].GetString());
+    device_addr.sin_port = htons(config["devices"]["device" + id]["port"].GetInt());
+    device_addr.sin_addr.s_addr = inet_addr(config["devices"]["device" + id]["ip"].GetString());
 
     if (bind(sockfd, (const sockaddr *) &proxy_addr, sizeof(proxy_addr)) == -1) {
         logger->error("Cannot bind proxy address");
