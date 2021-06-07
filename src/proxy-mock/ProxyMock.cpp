@@ -1,3 +1,7 @@
+//Created on 06.06.2021
+//
+// author: Anton Masiukevich
+//
 #include "ProxyMock.h"
 
 ProxyMock::ProxyMock(char const * fileName) {

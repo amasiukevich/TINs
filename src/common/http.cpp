@@ -1,3 +1,8 @@
+//  Created on 19.05.2021
+//
+//  author: Adrian Brodzik
+//
+
 #include "http.h"
 
 namespace HTTP {

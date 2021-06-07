@@ -1,3 +1,8 @@
+//  Created on 19.05.2021
+//
+//  author: Adrian Brodzik
+//
+
 #include "utility.h"
 
 std::vector<std::string> chunk_data(std::string &data, size_t chunk_size) {

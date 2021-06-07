@@ -1,3 +1,8 @@
+//  Created on 05.05.2021
+//
+//  authors: Adrian Brodzik, Joanna Sokołowska
+//
+
 #include "device.h"
 
 Device::Device(std::string config_path, std::string id)

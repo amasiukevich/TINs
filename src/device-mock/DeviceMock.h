@@ -1,5 +1,6 @@
+// Created on 06.06.2021
 //
-// Created by anton on 07.06.2021.
+// authors: Anton Masiukevich, Joanna Sokołowska
 //
 
 #ifndef AAA_PROTOCOL_DEVICEMOCK_H

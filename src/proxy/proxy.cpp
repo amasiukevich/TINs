@@ -1,3 +1,8 @@
+//  Created on 05.05.2021
+//
+//  authors: Adrian Brodzik, Joanna Sokołowska
+//
+
 #include "proxy.h"
 
 Proxy::Proxy(std::string config_path) {

@@ -1,3 +1,8 @@
+//  Created on 05.05.2021
+//
+//  authors: Adrian Brodzik, Joanna Sokołowska
+//
+
 #include "proxy.h"
 
 int main(int argc, char **argv) {
