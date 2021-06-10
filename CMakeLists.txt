@@ -7,6 +7,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++2a -Wall -Wextra -pedantic")
 
 add_custom_target(copy_config ALL COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/config" "${CMAKE_BINARY_DIR}/config")
 add_custom_target(copy_test_files ALL COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/test/acceptance_scenarios" "${CMAKE_BINARY_DIR}//test/acceptance_scenarios")
+add_custom_target(copy_device_files ALL COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/device_files" "${CMAKE_BINARY_DIR}/device_files")
 
 
 # Libraries
